@@ -296,19 +296,19 @@
     <div class="runner-demo">
       <div class="metric">
         <div class="label">Cadence</div>
-        <div class="value">178 spm</div>
+        <div class="value" data-countup data-suffix=" spm">178 spm</div>
       </div>
       <div class="metric">
         <div class="label">Pace</div>
-        <div class="value">4:52 /km</div>
+        <div class="value" data-countup data-pace data-suffix=" /km">4:52 /km</div>
       </div>
       <div class="metric">
         <div class="label">Form Score</div>
-        <div class="value">92</div>
+        <div class="value" data-countup>92</div>
       </div>
       <div class="metric">
         <div class="label">Crew Sync</div>
-        <div class="value">+3</div>
+        <div class="value" data-countup data-prefix="+">+3</div>
       </div>
     </div>
   </div>
@@ -425,6 +425,82 @@
     }
     return false;
   }
+
+  function animateCountUp(el, duration = 1200) {
+    const suffix = el.dataset.suffix || '';
+    const prefix = el.dataset.prefix || '';
+    const isPace = el.hasAttribute('data-pace');
+    const target = Number(el.dataset.target);
+
+    if (el._countUpFrame) cancelAnimationFrame(el._countUpFrame);
+
+    const start = performance.now();
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const current = Math.round(target * progress);
+
+      if (isPace) {
+        const m = Math.floor(current / 60);
+        const s = String(current % 60).padStart(2, '0');
+        el.textContent = `${m}:${s}${suffix}`;
+      } else {
+        el.textContent = `${prefix}${current}${suffix}`;
+      }
+
+      if (progress < 1) {
+        el._countUpFrame = requestAnimationFrame(tick);
+      } else {
+        el._countUpFrame = null;
+        el._animated = true;
+      }
+    }
+    el._countUpFrame = requestAnimationFrame(tick);
+  }
+
+  function resetCountUp(el) {
+    if (el._countUpFrame) {
+      cancelAnimationFrame(el._countUpFrame);
+      el._countUpFrame = null;
+    }
+    const suffix = el.dataset.suffix || '';
+    const prefix = el.dataset.prefix || '';
+    el.textContent = el.hasAttribute('data-pace') ? `0:00${suffix}` : `${prefix}0${suffix}`;
+    el._animated = false;
+  }
+
+  const countUpEls = document.querySelectorAll('[data-countup]');
+  countUpEls.forEach((el) => {
+    const text = el.textContent.trim();
+    const suffix = el.dataset.suffix || '';
+    const prefix = el.dataset.prefix || '';
+    if (el.hasAttribute('data-pace')) {
+      const [min, sec] = text.replace(suffix, '').split(':').map(Number);
+      el.dataset.target = min * 60 + sec;
+    } else {
+      el.dataset.target = parseInt(text.replace(prefix, '').replace(suffix, ''), 10);
+    }
+    el._visible = false;
+  });
+
+  const countUpObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      entry.target._visible = entry.isIntersecting;
+      if (!entry.isIntersecting) resetCountUp(entry.target);
+    });
+  }, { threshold: 0.4 });
+  countUpEls.forEach((el) => countUpObserver.observe(el));
+
+  let scrollStopTimer = null;
+  function onScrollStop() {
+    countUpEls.forEach((el) => {
+      if (el._visible && !el._countUpFrame && !el._animated) animateCountUp(el);
+    });
+  }
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollStopTimer);
+    scrollStopTimer = setTimeout(onScrollStop, 150);
+  }, { passive: true });
+  onScrollStop();
 </script>
 
 </body>
