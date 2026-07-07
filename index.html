@@ -95,9 +95,13 @@
     font-size: 0.98rem;
     text-decoration: none;
     display: inline-block;
-    transition: transform 0.15s, opacity 0.15s;
+    transition: opacity 0.15s;
   }
-  .btn:hover { transform: translateY(-2px); }
+  .btn:hover { animation: btn-spin 0.6s linear; }
+  @keyframes btn-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
   .btn-primary {
     background: var(--accent);
     color: #06120c;
