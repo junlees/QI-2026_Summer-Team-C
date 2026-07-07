@@ -1,0 +1,15 @@
+{
+  "name": "pace-runner-web",
+  "version": "1.0.0",
+  "description": "Pace Runner marketing site served via Express, deployable to Render.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
