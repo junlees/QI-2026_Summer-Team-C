@@ -10,8 +10,8 @@
     --bg-alt: #10161d;
     --text: #eef2f6;
     --muted: #9aa7b5;
-    --accent: #39ff9d;
-    --accent-dim: #1f6e4c;
+    --accent: #4dd8ff;
+    --accent-dim: #1c5b73;
     --card: #131a22;
     --border: #22303c;
   }
@@ -56,7 +56,7 @@
   .hero {
     padding: 6rem 6vw 4rem;
     text-align: center;
-    background: radial-gradient(ellipse at top, #10201a 0%, var(--bg) 60%);
+    background: radial-gradient(ellipse at top, #101c24 0%, var(--bg) 60%);
   }
   .badge {
     display: inline-block;
@@ -167,8 +167,13 @@
   .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 18px;
     padding: 1.8rem;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent-dim);
   }
   .card .icon {
     font-size: 1.6rem;

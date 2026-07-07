@@ -10,8 +10,8 @@
     --bg-alt: #10161d;
     --text: #eef2f6;
     --muted: #9aa7b5;
-    --accent: #39ff9d;
-    --accent-dim: #1f6e4c;
+    --accent: #4dd8ff;
+    --accent-dim: #1c5b73;
     --card: #131a22;
     --border: #22303c;
   }
@@ -57,7 +57,7 @@
   .page-hero {
     padding: 5rem 6vw 3rem;
     text-align: center;
-    background: radial-gradient(ellipse at top, #10201a 0%, var(--bg) 60%);
+    background: radial-gradient(ellipse at top, #101c24 0%, var(--bg) 60%);
   }
   .badge {
     display: inline-block;
@@ -118,13 +118,17 @@
   .feature-visual {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 2rem;
     min-height: 220px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 4rem;
+    transition: border-color 0.15s;
+  }
+  .feature-detail:hover .feature-visual {
+    border-color: var(--accent-dim);
   }
   .feature-text .icon-badge {
     display: inline-flex;
