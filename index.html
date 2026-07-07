@@ -44,6 +44,18 @@
     letter-spacing: -0.02em;
   }
   .logo span { color: var(--accent); }
+  .rainbow-shimmer,
+  .rainbow-shimmer span {
+    background: linear-gradient(90deg, #ff0080, #ff8c00, #ffee00, #39ff9d, #00c3ff, #8b5cf6, #ff0080);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: rainbow-shimmer 4s linear infinite;
+  }
+  @keyframes rainbow-shimmer {
+    to { background-position: 300% center; }
+  }
   nav a {
     text-decoration: none;
     color: var(--muted);
@@ -276,7 +288,7 @@
 <body>
 
 <header>
-  <div class="logo">Pace<span>Runner</span></div>
+  <div class="logo rainbow-shimmer">Pace<span>Runner</span></div>
   <nav>
     <a href="#features">Features</a>
     <a href="features.html">Features Detail</a>
@@ -289,7 +301,7 @@
 
 <section class="hero">
   <div class="badge">● Real-time pose analysis in your browser</div>
-  <h1>Run smarter with a coach that <span class="accent">sees every stride</span>.</h1>
+  <h1 class="rainbow-shimmer">Run smarter with a coach that <span class="accent">sees every stride</span>.</h1>
   <p class="sub">
     Pace Runner turns any phone camera into a live running coach — tracking your form,
     cadence, and pace in real time, then delivering instant cues so you and your crew
