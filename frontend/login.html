@@ -40,23 +40,49 @@
       </button>
     </form>
 
-    <a href="index.html" class="block text-center mt-[1.3rem] text-[0.82rem] text-muted">
+    <div class="flex items-center gap-3 my-[1.4rem]">
+      <div class="flex-1 h-px bg-border"></div>
+      <span class="text-[0.72rem] text-muted">or</span>
+      <div class="flex-1 h-px bg-border"></div>
+    </div>
+
+    <div class="flex flex-col gap-[0.6rem]">
+      <button type="button" class="w-full border border-border rounded-2xl py-[0.85rem] text-[0.88rem] font-bold bg-card text-ink cursor-pointer">
+        Continue with Google
+      </button>
+      <button type="button" class="w-full border border-border rounded-2xl py-[0.85rem] text-[0.88rem] font-bold bg-card text-ink cursor-pointer">
+        Continue with Kakao
+      </button>
+    </div>
+
+    <p class="text-center mt-[1.3rem] text-[0.82rem] text-muted">
+      New to AgriSage? <a href="signup.html" class="text-accent-dark font-bold">Sign up</a>
+    </p>
+    <a href="index.html" class="block text-center mt-[0.6rem] text-[0.82rem] text-muted">
       Continue as guest →
     </a>
   </main>
 
   <div class="px-[1.6rem] pb-[2rem]">
     <p class="m-0 text-center text-[0.72rem] text-muted">
-      This is a prototype — no account or password is actually checked yet.
+      This is a prototype — no account or password is actually checked yet. Social login buttons are UI stubs only.
     </p>
   </div>
 
 </div>
 
+<script src="js/store.js"></script>
 <script>
   document.getElementById("loginForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    window.location.href = "index.html";
+    const email = e.target.querySelector('input[type="email"]').value;
+    // No real auth yet — reuse the stored profile if one exists (e.g. from
+    // signup.html), otherwise create a minimal placeholder so dashboard.html
+    // and mypage.html have something to read.
+    if (!getProfile()) {
+      saveProfile({ email, certification: "conventional", purpose: "self_consumption" });
+    }
+    window.location.href = "dashboard.html";
   });
 </script>
 

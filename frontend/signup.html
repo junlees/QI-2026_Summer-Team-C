@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sign Up — AgriSage</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="m-0 p-0 bg-page text-ink font-sans min-[431px]:py-8">
+
+<div class="max-w-[430px] mx-auto min-h-screen bg-app flex flex-col relative shadow-[0_0_40px_rgba(0,0,0,0.06)]">
+
+  <div class="px-[1.3rem] pt-[1.1rem]">
+    <a class="back-btn" href="login.html">←</a>
+  </div>
+
+  <main class="flex-1 px-[1.6rem] py-[1rem]">
+    <h1 class="m-0 mb-[0.4rem] text-[1.3rem] tracking-[-0.02em]">Create your account</h1>
+    <p class="m-0 mb-[1.6rem] text-muted text-[0.88rem] leading-relaxed">A couple of quick questions so we can personalize your recommendations.</p>
+
+    <form id="signupForm" class="flex flex-col gap-[1.2rem]">
+      <div class="flex flex-col gap-[0.9rem]">
+        <label class="flex flex-col gap-[0.35rem]">
+          <span class="text-[0.78rem] font-bold text-muted">Email</span>
+          <input type="email" required placeholder="you@example.com"
+            class="w-full border border-border rounded-2xl px-4 py-[0.85rem] text-[0.92rem] bg-card text-ink outline-none focus:border-accent">
+        </label>
+        <label class="flex flex-col gap-[0.35rem]">
+          <span class="text-[0.78rem] font-bold text-muted">Password</span>
+          <input type="password" required placeholder="••••••••"
+            class="w-full border border-border rounded-2xl px-4 py-[0.85rem] text-[0.92rem] bg-card text-ink outline-none focus:border-accent">
+        </label>
+      </div>
+
+      <div>
+        <span class="block text-[0.78rem] font-bold text-muted mb-[0.5rem]">Certification</span>
+        <div class="grid grid-cols-2 gap-[0.6rem]">
+          <label class="flex items-center justify-center gap-2 border border-border rounded-2xl py-[0.75rem] text-[0.85rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="certification" value="conventional" checked class="hidden">
+            Conventional
+          </label>
+          <label class="flex items-center justify-center gap-2 border border-border rounded-2xl py-[0.75rem] text-[0.85rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="certification" value="organic" class="hidden">
+            Organic
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <span class="block text-[0.78rem] font-bold text-muted mb-[0.5rem]">Growing purpose</span>
+        <div class="grid grid-cols-2 gap-[0.6rem]">
+          <label class="flex items-center justify-center gap-2 border border-border rounded-2xl py-[0.75rem] text-[0.85rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="purpose" value="self_consumption" checked class="hidden">
+            Self-consumption
+          </label>
+          <label class="flex items-center justify-center gap-2 border border-border rounded-2xl py-[0.75rem] text-[0.85rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="purpose" value="sale" class="hidden">
+            Sale
+          </label>
+        </div>
+        <p class="m-0 mt-[0.5rem] text-[0.74rem] text-muted leading-relaxed">You'll set growing environment (open field / greenhouse) separately for each crop you register.</p>
+      </div>
+
+      <button type="submit" class="w-full border-none rounded-2xl py-[0.95rem] text-[0.95rem] font-bold bg-accent text-white cursor-pointer">
+        Create account
+      </button>
+    </form>
+
+    <p class="text-center mt-[1.3rem] mb-[1rem] text-[0.82rem] text-muted">
+      Already have an account? <a href="login.html" class="text-accent-dark font-bold">Log in</a>
+    </p>
+  </main>
+
+</div>
+
+<script src="js/store.js"></script>
+<script>
+  document.getElementById("signupForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const email = form.querySelector('input[type="email"]').value;
+    const certification = form.querySelector('input[name="certification"]:checked').value;
+    const purpose = form.querySelector('input[name="purpose"]:checked').value;
+    saveProfile({ email, certification, purpose });
+    window.location.href = "dashboard.html";
+  });
+</script>
+
+</body>
+</html>

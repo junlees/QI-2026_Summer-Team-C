@@ -17,6 +17,10 @@ module.exports = {
         card: "#ffffff",
         border: "#e2e1d3",
         warn: "#c1440e",
+        caution: "#b8860b",
+        "caution-soft": "#faf1d6",
+        danger: "#b3261e",
+        "danger-soft": "#fbe4e2",
       },
       keyframes: {
         dotPulse: {

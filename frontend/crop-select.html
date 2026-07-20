@@ -19,30 +19,75 @@
       <div class="icon-btn">🔔</div>
     </div>
     <nav class="flex px-[0.6rem] pb-[0.4rem]">
-      <a href="index.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">🏠</span>Home</a>
+      <a href="dashboard.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">🏠</span>Home</a>
       <a href="crop-select.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-accent-dark font-bold py-[0.3rem]"><span class="text-[1.15rem]">📷</span>Diagnose</a>
-      <a href="#" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">📋</span>History</a>
-      <a href="#" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">👤</span>Profile</a>
+      <a href="history.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">📋</span>History</a>
+      <a href="mypage.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">👤</span>Profile</a>
     </nav>
     <div class="flex items-center gap-[0.8rem] px-[1.3rem] pb-[0.6rem]">
-      <a class="back-btn" href="index.html">←</a>
-      <h1 class="m-0 text-[1.1rem] tracking-[-0.01em]">Select Crop</h1>
+      <a class="back-btn" href="dashboard.html">←</a>
+      <h1 class="m-0 text-[1.1rem] tracking-[-0.01em]">Register a Crop</h1>
     </div>
   </header>
 
-  <main class="flex-1 px-[1.3rem] pt-[0.3rem] pb-[7.5rem]">
-    <p class="mt-[0.2rem] mb-[1.1rem] text-muted text-[0.88rem] leading-relaxed">Please select the crop to diagnose. Each crop is color-coded 🎨</p>
+  <main class="flex-1 px-[1.3rem] pt-[0.3rem] pb-[9rem]">
+    <p class="mt-[0.2rem] mb-[1.1rem] text-muted text-[0.88rem] leading-relaxed">Select the crop to register. Each crop is color-coded 🎨</p>
 
     <div class="grid grid-cols-2 gap-[0.8rem]" id="cropGrid"></div>
+
+    <div class="hidden mt-[1.6rem] flex-col gap-[1.1rem]" id="cropDetails">
+      <div class="flex items-baseline justify-between">
+        <h3 class="m-0 text-base tracking-[-0.01em]">Growing details for <span id="detailsCropName" class="text-accent-dark"></span></h3>
+      </div>
+
+      <div>
+        <span class="block text-[0.78rem] font-bold text-muted mb-[0.5rem]">Growing environment</span>
+        <div class="grid grid-cols-2 gap-[0.6rem]">
+          <label class="flex items-center justify-center gap-2 border border-border rounded-2xl py-[0.75rem] text-[0.85rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="growingEnvironment" value="open_field" checked class="hidden">
+            Open field
+          </label>
+          <label class="flex items-center justify-center gap-2 border border-border rounded-2xl py-[0.75rem] text-[0.85rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="growingEnvironment" value="greenhouse" class="hidden">
+            Greenhouse
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <span class="block text-[0.78rem] font-bold text-muted mb-[0.5rem]">Purpose for this crop</span>
+        <select id="purposeSelect" class="w-full border border-border rounded-2xl px-4 py-[0.8rem] text-[0.88rem] bg-card text-ink outline-none focus:border-accent">
+          <option value="account_default">Use account default</option>
+          <option value="self_consumption">Self-consumption</option>
+          <option value="sale">Sale</option>
+        </select>
+      </div>
+
+      <label class="flex flex-col gap-[0.35rem]">
+        <span class="text-[0.78rem] font-bold text-muted">Expected harvest date</span>
+        <input type="date" id="harvestDate"
+          class="w-full border border-border rounded-2xl px-4 py-[0.8rem] text-[0.88rem] bg-card text-ink outline-none focus:border-accent">
+      </label>
+    </div>
+
+    <div class="mt-[2rem]">
+      <div class="flex items-baseline justify-between mb-[0.8rem]">
+        <h3 class="m-0 text-base tracking-[-0.01em]">Your registered crops</h3>
+        <span class="text-muted text-[0.78rem]" id="cropCount"></span>
+      </div>
+      <div class="flex flex-col gap-[0.6rem]" id="registeredList"></div>
+      <p class="m-0 text-muted text-[0.82rem]" id="emptyState">No crops registered yet — add one above.</p>
+    </div>
   </main>
 
   <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[rgba(246,244,236,0.95)] backdrop-blur-[10px] border-t border-border px-[1.3rem] pt-[0.9rem] pb-[calc(0.9rem+env(safe-area-inset-bottom))]">
     <div class="text-[0.8rem] text-muted mb-[0.55rem] min-h-[1.1rem]" id="selectedLine">No crop selected yet</div>
-    <button class="next-btn" id="nextBtn" disabled>Next (take a photo)</button>
+    <button class="next-btn" id="addCropBtn" disabled>Add crop</button>
   </div>
 
 </div>
 
+<script src="js/store.js"></script>
 <script>
   const crops = [
     { en: "Apple",      emoji: "🍎", color: "#d62828" },
@@ -63,7 +108,13 @@
 
   const grid = document.getElementById("cropGrid");
   const selectedLine = document.getElementById("selectedLine");
-  const nextBtn = document.getElementById("nextBtn");
+  const addCropBtn = document.getElementById("addCropBtn");
+  const cropDetails = document.getElementById("cropDetails");
+  const detailsCropName = document.getElementById("detailsCropName");
+  const harvestDate = document.getElementById("harvestDate");
+  const registeredList = document.getElementById("registeredList");
+  const emptyState = document.getElementById("emptyState");
+  const cropCount = document.getElementById("cropCount");
   let selected = null;
 
   crops.forEach((crop) => {
@@ -84,15 +135,68 @@
     card.classList.add("selected");
     selected = crop;
     selectedLine.innerHTML = `Selected crop: <b class="text-ink">${crop.en}</b>`;
-    nextBtn.disabled = false;
-    nextBtn.classList.add("ready");
+    detailsCropName.textContent = crop.en;
+    cropDetails.classList.remove("hidden");
+    cropDetails.classList.add("flex");
+    validateForm();
   }
 
-  nextBtn.addEventListener("click", () => {
-    if (!selected) return;
-    const params = new URLSearchParams({ crop: selected.en, color: selected.color, emoji: selected.emoji });
-    window.location.href = "diagnose.html?" + params.toString();
+  harvestDate.addEventListener("change", validateForm);
+
+  function validateForm() {
+    addCropBtn.disabled = !(selected && harvestDate.value);
+    addCropBtn.classList.toggle("ready", !addCropBtn.disabled);
+  }
+
+  addCropBtn.addEventListener("click", () => {
+    if (addCropBtn.disabled) return;
+    const growingEnvironment = document.querySelector('input[name="growingEnvironment"]:checked').value;
+    const purposeChoice = document.getElementById("purposeSelect").value;
+    const crop = {
+      id: `crop_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: selected.en,
+      emoji: selected.emoji,
+      color: selected.color,
+      growingEnvironment,
+      purposeOverride: purposeChoice === "account_default" ? null : purposeChoice,
+      harvestDate: harvestDate.value,
+    };
+    addCrop(crop);
+    resetForm();
+    renderRegisteredCrops();
   });
+
+  function resetForm() {
+    selected = null;
+    document.querySelectorAll(".crop-card").forEach((c) => c.classList.remove("selected"));
+    selectedLine.textContent = "No crop selected yet";
+    cropDetails.classList.add("hidden");
+    cropDetails.classList.remove("flex");
+    harvestDate.value = "";
+    document.getElementById("purposeSelect").value = "account_default";
+    validateForm();
+  }
+
+  function purposeLabel(crop) {
+    if (!crop.purposeOverride) return "Account default";
+    return crop.purposeOverride === "sale" ? "Sale" : "Self-consumption";
+  }
+
+  function renderRegisteredCrops() {
+    const registered = getCrops();
+    cropCount.textContent = registered.length ? `${registered.length} REGISTERED` : "";
+    emptyState.classList.toggle("hidden", registered.length > 0);
+    registeredList.innerHTML = registered.map((crop) => `
+      <div class="flex items-center gap-[0.8rem] bg-card border border-border rounded-2xl px-4 py-[0.75rem]">
+        <div class="w-[2.2rem] h-[2.2rem] rounded-full flex items-center justify-center text-[1.2rem] shrink-0" style="background:${crop.color}">${crop.emoji}</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-[0.9rem] font-bold">${crop.name}</div>
+          <div class="text-[0.72rem] text-muted">${crop.growingEnvironment === "greenhouse" ? "Greenhouse" : "Open field"} · ${purposeLabel(crop)} · Harvest ${crop.harvestDate}</div>
+        </div>
+        <a href="diagnose.html?cropId=${crop.id}&crop=${encodeURIComponent(crop.name)}&color=${encodeURIComponent(crop.color)}&emoji=${encodeURIComponent(crop.emoji)}" class="text-[0.76rem] font-bold text-accent-dark shrink-0">Diagnose →</a>
+      </div>
+    `).join("");
+  }
 
   function shade(hex, percent) {
     const num = parseInt(hex.slice(1), 16);
@@ -104,6 +208,8 @@
     b = Math.max(0, Math.min(255, b));
     return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
   }
+
+  renderRegisteredCrops();
 </script>
 
 </body>

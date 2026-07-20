@@ -18,10 +18,10 @@
       <div class="icon-btn">🔔</div>
     </div>
     <nav class="flex px-[0.6rem] pb-[0.4rem]">
-      <a href="index.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">🏠</span>Home</a>
+      <a href="dashboard.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">🏠</span>Home</a>
       <a href="crop-select.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-accent-dark font-bold py-[0.3rem]"><span class="text-[1.15rem]">📷</span>Diagnose</a>
-      <a href="#" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">📋</span>History</a>
-      <a href="#" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">👤</span>Profile</a>
+      <a href="history.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">📋</span>History</a>
+      <a href="mypage.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">👤</span>Profile</a>
     </nav>
     <div class="flex items-center gap-[0.8rem] px-[1.3rem] pb-[0.6rem]">
       <a class="back-btn" href="crop-select.html">←</a>
@@ -39,7 +39,14 @@
       <p class="m-0 text-[0.78rem] text-muted">Tap to take a photo or choose one from your gallery</p>
     </label>
 
-    <button class="primary-btn" id="diagnoseBtn" disabled>Run AI Diagnosis</button>
+    <div class="flex gap-[0.6rem] bg-card border border-border rounded-2xl px-4 py-[0.8rem] mt-[0.8rem]">
+      <div class="text-[1.05rem]">💡</div>
+      <div class="text-[0.76rem] text-muted leading-relaxed">
+        <b class="text-ink">Tips for a clearer diagnosis:</b> shoot in natural daylight, avoid harsh shadows or glare, fill the frame with the whole leaf, and hold the camera steady and close to the affected spot.
+      </div>
+    </div>
+
+    <button class="primary-btn mt-[1.1rem]" id="diagnoseBtn" disabled>Run AI Diagnosis</button>
 
     <div class="spinner" id="spinner">
       <div class="w-2 h-2 rounded-full bg-accent animate-dot-pulse"></div>
@@ -47,34 +54,13 @@
       <div class="w-2 h-2 rounded-full bg-accent animate-dot-pulse" style="animation-delay:.3s"></div>
       <span>Diagnosing...</span>
     </div>
-
-    <div class="result" id="result">
-      <div class="bg-card border border-border rounded-2xl p-[1.2rem] mb-[0.9rem]">
-        <h4 class="m-0 text-[0.78rem] text-muted uppercase tracking-[0.04em]">Diagnosis Result</h4>
-        <div class="flex items-center justify-between mt-[0.3rem]">
-          <span class="text-[1.15rem] font-extrabold" id="diseaseName">Leaf Blight (suspected)</span>
-          <span class="text-[0.78rem] font-bold px-[0.6rem] py-[0.25rem] rounded-full bg-accent-soft text-accent-dark" id="confScore">Confidence 92%</span>
-        </div>
-        <p class="mt-[0.4rem] text-[0.86rem] leading-relaxed text-ink" id="diseaseDesc">Symptoms show browning that starts at the leaf edges and spreads. It can spread quickly in humid conditions.</p>
-      </div>
-      <div class="bg-card border border-border rounded-2xl p-[1.2rem] mb-[0.9rem]">
-        <h4 class="m-0 text-[0.78rem] text-muted uppercase tracking-[0.04em]">Cause &amp; Treatment</h4>
-        <p class="mt-[0.4rem] text-[0.86rem] leading-relaxed text-ink">Excess soil moisture and poor airflow are the likely causes. Remove infected leaves and space out watering to improve airflow.</p>
-      </div>
-      <div class="bg-card border border-border rounded-2xl p-[1.2rem] mb-[0.9rem]">
-        <h4 class="m-0 text-[0.78rem] text-muted uppercase tracking-[0.04em]">Personalized Treatment Recommendation</h4>
-        <p class="mt-[0.4rem] text-[0.86rem] leading-relaxed text-ink">We've compiled registered product candidates suited to your growing conditions. (This demo screen shows a sample before real product DB integration.)</p>
-      </div>
-      <div class="flex gap-[0.6rem] bg-[#fdf1e7] border border-[#f2d6b8] rounded-2xl px-4 py-[0.9rem]">
-        <div class="text-warn">⚠️</div>
-        <p class="m-0 text-[0.78rem] text-[#8a4a1f] leading-relaxed">We automatically compare the pre-harvest interval (PLS) against your expected harvest date and suggest alternatives if there's a conflict.</p>
-      </div>
-    </div>
   </main>
 </div>
 
+<script src="js/store.js"></script>
 <script>
   const params = new URLSearchParams(window.location.search);
+  const cropId = params.get("cropId");
   const crop = params.get("crop") || "Crop";
   const color = params.get("color") || "#3f7d20";
   const emoji = params.get("emoji") || "🌱";
@@ -87,32 +73,32 @@
   const uploadBox = document.getElementById("uploadBox");
   const diagnoseBtn = document.getElementById("diagnoseBtn");
   const spinner = document.getElementById("spinner");
-  const result = document.getElementById("result");
-  let hasImage = false;
+  let uploadedImage = null;
 
   fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      uploadBox.innerHTML = `<img src="${e.target.result}" alt="Uploaded photo" class="w-full h-[220px] object-cover rounded-[14px]">`;
-      hasImage = true;
+      uploadedImage = e.target.result;
+      uploadBox.innerHTML = `<img src="${uploadedImage}" alt="Uploaded photo" class="w-full h-[220px] object-cover rounded-[14px]">`;
       diagnoseBtn.disabled = false;
       diagnoseBtn.classList.add("ready");
-      result.classList.remove("show");
     };
     reader.readAsDataURL(file);
   });
 
   diagnoseBtn.addEventListener("click", () => {
-    if (!hasImage) return;
-    result.classList.remove("show");
+    if (!uploadedImage) return;
     spinner.classList.add("show");
     diagnoseBtn.disabled = true;
     setTimeout(() => {
-      spinner.classList.remove("show");
-      result.classList.add("show");
-      diagnoseBtn.disabled = false;
+      const result = mockDiagnose();
+      const registeredCrop = getCrops().find((c) => c.id === cropId) || null;
+      sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify({
+        cropId, cropName: crop, color, emoji, image: uploadedImage, result, crop: registeredCrop,
+      }));
+      window.location.href = "diagnosis-result.html";
     }, 1200);
   });
 </script>
