@@ -1,0 +1,16 @@
+{
+  "name": "AgriSage — AI Crop Disease Diagnosis",
+  "short_name": "AgriSage",
+  "description": "Diagnose crop diseases from a photo and get personalized treatment guidance.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef2e3",
+  "theme_color": "#3f7d20",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -108,6 +108,21 @@ frontend/           Static HTML + Tailwind CSS, no JS framework.
                       light colors caution/caution-soft/danger/danger-soft),
                       font, spinner keyframes.
   package.json          Scripts: build (one-off), watch (rebuild on save).
+  manifest.webmanifest  PWA manifest (name, icons, standalone display,
+                      theme/background color). Linked from every page's
+                      <head>. start_url is "/" (landing.html).
+  sw.js                 Service worker: precaches every HTML page plus
+                      css/styles.css and js/store.js on install; HTML
+                      requests are network-first (cache fallback offline),
+                      everything else is cache-first. Bump CACHE_NAME when
+                      the precache list or any precached file changes, or
+                      installed clients keep the stale cache.
+  js/pwa.js              Registers sw.js on window load. Included via
+                      <script src="js/pwa.js"> at the end of every page's
+                      <body> (see "Hybrid app/web" below).
+  icons/                 PWA icons generated from icons/icon.svg (the
+                      source of truth) via a one-off `sharp` script — see
+                      that section before touching any icon file.
 render.yaml         Render deploy config — points at backend/, mirrors the
                     gunicorn command above, and also runs the frontend
                     npm install + build so styles.css exists at deploy time.
@@ -192,6 +207,20 @@ plus `caution`/`caution-soft` (🟡) and `danger`/`danger-soft` (🔴) for the
 diagnosis traffic light — is defined once in `frontend/tailwind.config.js`;
 use those names instead of hardcoding hex values in new markup.
 
+**Hybrid app/web (PWA)**: every page — including the pre-login ones
+(`landing.html`, `login.html`, `signup.html`) and the standalone
+`index.html` — has the same PWA boilerplate: a `<link rel="manifest"
+href="manifest.webmanifest">`, icon links, `apple-mobile-web-app-*` meta
+tags, and `<script src="js/pwa.js"></script>` right before `</body>`. This
+is what makes the site installable ("Add to Home Screen" / browser install
+prompt) and usable offline via `sw.js`, without a separate native app or a
+second codebase. When adding a new HTML page, copy this exact block from an
+existing page (all 11 currently have it verbatim) rather than only some of
+it — a page missing the manifest link won't be installable from that entry
+point, and a page missing `js/pwa.js` won't register/update the service
+worker. If you add, rename, or remove a precached file, update
+`PRECACHE_URLS` in `sw.js` and bump `CACHE_NAME` in the same file.
+
 ## Structure is intentional — keep it
 
 `backend/` (server + model) and `frontend/` (static pages, Tailwind-styled)
@@ -201,3 +230,6 @@ do not move the model code anywhere other than `backend/models/`, and do not
 reintroduce per-page `<style>` blocks, a different CSS framework, or a
 different build tool for the frontend — Tailwind CLI via `frontend/package.json`
 is the one build path, and `render.yaml` / `scripts/setup.*` all assume it.
+Likewise, don't drop the PWA manifest/service-worker wiring from a page or
+introduce a second, native-app codebase for "the app" — this is deliberately
+one static site that works as both web and installable app.

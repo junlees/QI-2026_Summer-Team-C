@@ -25,6 +25,10 @@
 │   ├── mypage.html         # 프로필 수정, 등록 작물 관리(수정/삭제), 알림 설정
 │   ├── index.html          # (게스트 전용) 홈: 진단 시작 CTA, 4단계 흐름, 차별점 카드
 │   ├── js/store.js         # localStorage 기반 mock 프로필/작물/이력 + mock AI 진단
+│   ├── js/pwa.js           # 서비스워커 등록 (모든 페이지 공통 포함)
+│   ├── sw.js                # 서비스워커: 오프라인 캐싱 (모든 페이지 프리캐시)
+│   ├── manifest.webmanifest # PWA 매니페스트 (앱 이름/아이콘/테마색)
+│   ├── icons/               # PWA 아이콘 (192/512/maskable/apple-touch/favicon)
 │   ├── src/input.css       # Tailwind 진입점 (@tailwind + 커스텀 컴포넌트 클래스)
 │   ├── css/styles.css      # 빌드 결과물 (커밋 안 함, npm run build로 생성)
 │   ├── tailwind.config.js  # 커스텀 색상 팔레트 등 테마 설정
@@ -68,6 +72,27 @@
 프로필·작물·진단 이력을 흉내 내고 `mockDiagnose()`가 무작위로 진단 결과를
 반환합니다. 실제 API가 준비되면 이 파일의 함수들을 `fetch()` 호출로 교체하면
 됩니다 (엔드포인트 후보는 `CLAUDE.md` 참고).
+
+## 하이브리드 (웹 + 앱)
+
+AgriSage는 PWA(Progressive Web App)로 설정되어 있어서, 브라우저로 접속하는
+"웹"과 홈 화면에 설치하는 "앱"을 같은 코드로 제공합니다.
+
+- **모든 페이지**의 `<head>`에 `manifest.webmanifest` 링크, 아이콘, iOS용
+  `apple-mobile-web-app-*` 메타 태그가 들어 있고, `js/pwa.js`가 서비스워커
+  (`sw.js`)를 등록합니다.
+- 브라우저에서: 그냥 URL로 접속하면 평범한 웹사이트로 동작합니다.
+- 앱처럼 설치: Chrome/Edge/Android는 주소창의 설치 아이콘 또는 메뉴의
+  "앱 설치", iOS Safari는 공유 → "홈 화면에 추가"로 설치할 수 있습니다.
+  설치하면 주소창 없이 standalone 창으로 실행되고, 홈 화면 아이콘이 생깁니다.
+- `sw.js`가 모든 HTML 페이지와 `css/styles.css`, `js/store.js`를 미리 캐싱해서
+  오프라인이거나 네트워크가 불안정해도 이전에 방문한 화면은 열립니다. HTML은
+  네트워크 우선(온라인이면 항상 최신), 나머지 정적 파일은 캐시 우선입니다.
+- 프리캐시 목록이나 파일 이름을 바꾸면 `frontend/sw.js`의 `CACHE_NAME`
+  버전을 올려주세요 (예: `agrisage-v1` → `agrisage-v2`) — 그래야 이미 설치된
+  사용자의 기기에서도 새 캐시로 교체됩니다.
+- 서비스워커는 HTTPS 또는 `localhost`에서만 등록됩니다. 로컬 개발
+  (`http://localhost:5000`)은 문제없이 동작합니다.
 
 ## 처음 세팅 (다른 환경에서 클론했을 때)
 
