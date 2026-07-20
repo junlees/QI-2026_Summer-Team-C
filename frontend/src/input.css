@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  a {
+    @apply text-[inherit] no-underline;
+  }
+  button {
+    font-family: inherit;
+  }
+}
+
+/*
+ * Components below back small, JS-toggled interaction states (".selected",
+ * ".ready", ".show") that the frontend scripts add/remove via classList.
+ * Everything else is plain Tailwind utility classes directly in the HTML.
+ */
+@layer components {
+  .icon-btn,
+  .back-btn {
+    @apply w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-base shrink-0;
+  }
+
+  .crop-card {
+    @apply relative border-2 border-transparent rounded-[18px] pt-[1.1rem] px-[0.9rem] pb-[0.9rem] flex flex-col items-start gap-2 cursor-pointer text-white transition-transform active:scale-[0.97];
+  }
+  .crop-card.selected {
+    @apply border-ink shadow-[0_0_0_3px_rgba(34,48,27,0.12)];
+  }
+  .crop-card .check {
+    @apply hidden absolute top-[0.7rem] right-[0.7rem] w-[1.3rem] h-[1.3rem] rounded-full bg-white text-ink text-xs font-black items-center justify-center;
+  }
+  .crop-card.selected .check {
+    @apply flex;
+  }
+
+  .next-btn,
+  .primary-btn {
+    @apply w-full border-none rounded-2xl py-[0.95rem] text-[0.95rem] font-bold bg-border text-muted transition-colors;
+  }
+  .next-btn.ready,
+  .primary-btn.ready {
+    @apply bg-accent text-white cursor-pointer;
+  }
+
+  .result {
+    @apply hidden mt-[1.6rem];
+  }
+  .result.show {
+    @apply block;
+  }
+
+  .spinner {
+    @apply hidden items-center gap-2 justify-center mt-[1.1rem] text-muted text-[0.85rem];
+  }
+  .spinner.show {
+    @apply flex;
+  }
+}

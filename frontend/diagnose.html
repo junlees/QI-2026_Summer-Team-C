@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Photo Diagnosis — AgriSage</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="m-0 p-0 bg-page text-ink font-sans">
+
+<div class="max-w-[430px] mx-auto min-h-screen bg-app flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.06)]">
+  <header class="flex items-center gap-[0.8rem] px-[1.3rem] pt-[1.1rem] pb-[0.6rem]">
+    <a class="back-btn" href="crop-select.html">←</a>
+    <h1 class="m-0 text-[1.1rem] tracking-[-0.01em]">Photo Diagnosis</h1>
+  </header>
+
+  <main class="flex-1 px-[1.3rem] pt-[0.3rem] pb-[2.5rem]">
+    <div class="inline-flex items-center gap-2 text-white pl-2 pr-[0.9rem] py-2 rounded-full text-[0.85rem] font-bold mt-[0.3rem] mb-[1.2rem]" id="cropChip"></div>
+
+    <label class="border-2 border-dashed border-border rounded-[20px] bg-card min-h-[220px] flex flex-col items-center justify-center gap-[0.6rem] text-center p-6 cursor-pointer overflow-hidden relative block" id="uploadBox">
+      <input type="file" class="hidden" id="fileInput" accept="image/*" capture="environment">
+      <div class="text-[2rem]">📷</div>
+      <h3 class="m-0 text-[0.95rem]">Upload a leaf photo</h3>
+      <p class="m-0 text-[0.78rem] text-muted">Tap to take a photo or choose one from your gallery</p>
+    </label>
+
+    <button class="primary-btn" id="diagnoseBtn" disabled>Run AI Diagnosis</button>
+
+    <div class="spinner" id="spinner">
+      <div class="w-2 h-2 rounded-full bg-accent animate-dot-pulse"></div>
+      <div class="w-2 h-2 rounded-full bg-accent animate-dot-pulse" style="animation-delay:.15s"></div>
+      <div class="w-2 h-2 rounded-full bg-accent animate-dot-pulse" style="animation-delay:.3s"></div>
+      <span>Diagnosing...</span>
+    </div>
+
+    <div class="result" id="result">
+      <div class="bg-card border border-border rounded-2xl p-[1.2rem] mb-[0.9rem]">
+        <h4 class="m-0 text-[0.78rem] text-muted uppercase tracking-[0.04em]">Diagnosis Result</h4>
+        <div class="flex items-center justify-between mt-[0.3rem]">
+          <span class="text-[1.15rem] font-extrabold" id="diseaseName">Leaf Blight (suspected)</span>
+          <span class="text-[0.78rem] font-bold px-[0.6rem] py-[0.25rem] rounded-full bg-accent-soft text-accent-dark" id="confScore">Confidence 92%</span>
+        </div>
+        <p class="mt-[0.4rem] text-[0.86rem] leading-relaxed text-ink" id="diseaseDesc">Symptoms show browning that starts at the leaf edges and spreads. It can spread quickly in humid conditions.</p>
+      </div>
+      <div class="bg-card border border-border rounded-2xl p-[1.2rem] mb-[0.9rem]">
+        <h4 class="m-0 text-[0.78rem] text-muted uppercase tracking-[0.04em]">Cause &amp; Treatment</h4>
+        <p class="mt-[0.4rem] text-[0.86rem] leading-relaxed text-ink">Excess soil moisture and poor airflow are the likely causes. Remove infected leaves and space out watering to improve airflow.</p>
+      </div>
+      <div class="bg-card border border-border rounded-2xl p-[1.2rem] mb-[0.9rem]">
+        <h4 class="m-0 text-[0.78rem] text-muted uppercase tracking-[0.04em]">Personalized Treatment Recommendation</h4>
+        <p class="mt-[0.4rem] text-[0.86rem] leading-relaxed text-ink">We've compiled registered product candidates suited to your growing conditions. (This demo screen shows a sample before real product DB integration.)</p>
+      </div>
+      <div class="flex gap-[0.6rem] bg-[#fdf1e7] border border-[#f2d6b8] rounded-2xl px-4 py-[0.9rem]">
+        <div class="text-warn">⚠️</div>
+        <p class="m-0 text-[0.78rem] text-[#8a4a1f] leading-relaxed">We automatically compare the pre-harvest interval (PLS) against your expected harvest date and suggest alternatives if there's a conflict.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const crop = params.get("crop") || "Crop";
+  const color = params.get("color") || "#3f7d20";
+  const emoji = params.get("emoji") || "🌱";
+
+  const chip = document.getElementById("cropChip");
+  chip.style.background = color;
+  chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${emoji}</span> Diagnosing ${crop}`;
+
+  const fileInput = document.getElementById("fileInput");
+  const uploadBox = document.getElementById("uploadBox");
+  const diagnoseBtn = document.getElementById("diagnoseBtn");
+  const spinner = document.getElementById("spinner");
+  const result = document.getElementById("result");
+  let hasImage = false;
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadBox.innerHTML = `<img src="${e.target.result}" alt="Uploaded photo" class="w-full h-[220px] object-cover rounded-[14px]">`;
+      hasImage = true;
+      diagnoseBtn.disabled = false;
+      diagnoseBtn.classList.add("ready");
+      result.classList.remove("show");
+    };
+    reader.readAsDataURL(file);
+  });
+
+  diagnoseBtn.addEventListener("click", () => {
+    if (!hasImage) return;
+    result.classList.remove("show");
+    spinner.classList.add("show");
+    diagnoseBtn.disabled = true;
+    setTimeout(() => {
+      spinner.classList.remove("show");
+      result.classList.add("show");
+      diagnoseBtn.disabled = false;
+    }, 1200);
+  });
+</script>
+
+</body>
+</html>

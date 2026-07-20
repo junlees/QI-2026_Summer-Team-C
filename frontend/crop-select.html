@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Select Crop — AgriSage</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="m-0 p-0 bg-page text-ink font-sans">
+
+<div class="max-w-[430px] mx-auto min-h-screen bg-app flex flex-col relative shadow-[0_0_40px_rgba(0,0,0,0.06)]">
+
+  <header class="flex items-center gap-[0.8rem] px-[1.3rem] pt-[1.1rem] pb-[0.6rem]">
+    <a class="back-btn" href="index.html">←</a>
+    <h1 class="m-0 text-[1.1rem] tracking-[-0.01em]">Select Crop</h1>
+  </header>
+
+  <main class="flex-1 px-[1.3rem] pt-[0.3rem] pb-[7.5rem]">
+    <p class="mt-[0.2rem] mb-[1.1rem] text-muted text-[0.88rem] leading-relaxed">Please select the crop to diagnose. Each crop is color-coded 🎨</p>
+
+    <div class="grid grid-cols-2 gap-[0.8rem]" id="cropGrid"></div>
+  </main>
+
+  <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[rgba(246,244,236,0.95)] backdrop-blur-[10px] border-t border-border px-[1.3rem] pt-[0.9rem] pb-[calc(0.9rem+env(safe-area-inset-bottom))]">
+    <div class="text-[0.8rem] text-muted mb-[0.55rem] min-h-[1.1rem]" id="selectedLine">No crop selected yet</div>
+    <button class="next-btn" id="nextBtn" disabled>Next (take a photo)</button>
+  </div>
+
+</div>
+
+<script>
+  const crops = [
+    { en: "Apple",      emoji: "🍎", color: "#d62828" },
+    { en: "Cherry",     emoji: "🍒", color: "#9d0208" },
+    { en: "Grape",      emoji: "🍇", color: "#5a189a" },
+    { en: "Orange",     emoji: "🍊", color: "#f77f00" },
+    { en: "Peach",      emoji: "🍑", color: "#f4978e" },
+    { en: "Blueberry",  emoji: "🫐", color: "#3a86ff" },
+    { en: "Strawberry", emoji: "🍓", color: "#e5383b" },
+    { en: "Raspberry",  emoji: "🍓", color: "#c9184a" },
+    { en: "Corn",       emoji: "🌽", color: "#e2b93b" },
+    { en: "Potato",     emoji: "🥔", color: "#a9744f" },
+    { en: "Pepper Bell", emoji: "🫑", color: "#588157" },
+    { en: "Squash",     emoji: "🎃", color: "#f4a300" },
+    { en: "Soybean",    emoji: "🫘", color: "#6a994e" },
+    { en: "Tomato",     emoji: "🍅", color: "#e63946" },
+  ];
+
+  const grid = document.getElementById("cropGrid");
+  const selectedLine = document.getElementById("selectedLine");
+  const nextBtn = document.getElementById("nextBtn");
+  let selected = null;
+
+  crops.forEach((crop) => {
+    const card = document.createElement("div");
+    card.className = "crop-card";
+    card.style.background = `linear-gradient(150deg, ${crop.color} 0%, ${shade(crop.color, -18)} 100%)`;
+    card.innerHTML = `
+      <div class="check">✓</div>
+      <div class="w-[2.6rem] h-[2.6rem] rounded-[13px] bg-white/[0.28] flex items-center justify-center text-[1.9rem]">${crop.emoji}</div>
+      <div class="text-[0.98rem] font-extrabold tracking-[-0.01em]">${crop.en}</div>
+    `;
+    card.addEventListener("click", () => selectCrop(crop, card));
+    grid.appendChild(card);
+  });
+
+  function selectCrop(crop, card) {
+    document.querySelectorAll(".crop-card").forEach((c) => c.classList.remove("selected"));
+    card.classList.add("selected");
+    selected = crop;
+    selectedLine.innerHTML = `Selected crop: <b class="text-ink">${crop.en}</b>`;
+    nextBtn.disabled = false;
+    nextBtn.classList.add("ready");
+  }
+
+  nextBtn.addEventListener("click", () => {
+    if (!selected) return;
+    const params = new URLSearchParams({ crop: selected.en, color: selected.color, emoji: selected.emoji });
+    window.location.href = "diagnose.html?" + params.toString();
+  });
+
+  function shade(hex, percent) {
+    const num = parseInt(hex.slice(1), 16);
+    let r = (num >> 16) + Math.round(2.55 * percent);
+    let g = ((num >> 8) & 0x00ff) + Math.round(2.55 * percent);
+    let b = (num & 0x0000ff) + Math.round(2.55 * percent);
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+  }
+</script>
+
+</body>
+</html>
