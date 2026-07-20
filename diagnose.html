@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>사진 진단 — AgriSage</title>
+<title>Photo Diagnosis — AgriSage</title>
 <style>
   :root {
     --bg: #f6f4ec;
@@ -184,7 +184,7 @@
 <div class="app">
   <header class="app-header">
     <a class="back-btn" href="crop-select.html">←</a>
-    <h1>사진 진단</h1>
+    <h1>Photo Diagnosis</h1>
   </header>
 
   <main>
@@ -193,39 +193,39 @@
     <label class="upload-box" id="uploadBox">
       <input type="file" id="fileInput" accept="image/*" capture="environment">
       <div class="ic">📷</div>
-      <h3>잎사귀 사진을 업로드해주세요</h3>
-      <p>탭해서 사진을 찍거나 갤러리에서 선택하세요</p>
+      <h3>Upload a leaf photo</h3>
+      <p>Tap to take a photo or choose one from your gallery</p>
     </label>
 
-    <button class="primary-btn" id="diagnoseBtn" disabled>AI 진단하기</button>
+    <button class="primary-btn" id="diagnoseBtn" disabled>Run AI Diagnosis</button>
 
     <div class="spinner" id="spinner">
       <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-      <span>진단 중이에요...</span>
+      <span>Diagnosing...</span>
     </div>
 
     <div class="result" id="result">
       <div class="result-card">
         <div class="diag-title">
-          <h4 style="margin:0;">진단 결과</h4>
+          <h4 style="margin:0;">Diagnosis Result</h4>
         </div>
         <div class="diag-title" style="margin-top:0.3rem;">
-          <span class="name" id="diseaseName">잎마름병 (의심)</span>
-          <span class="confidence" id="confScore">신뢰도 92%</span>
+          <span class="name" id="diseaseName">Leaf Blight (suspected)</span>
+          <span class="confidence" id="confScore">Confidence 92%</span>
         </div>
-        <p id="diseaseDesc">잎 가장자리부터 갈색으로 마르며 번지는 병징이 보여요. 습한 환경에서 빠르게 확산될 수 있어요.</p>
+        <p id="diseaseDesc">Symptoms show browning that starts at the leaf edges and spreads. It can spread quickly in humid conditions.</p>
       </div>
       <div class="result-card">
-        <h4>발생 원인 &amp; 대응법</h4>
-        <p>과습한 토양과 통풍 부족이 주요 원인으로 추정돼요. 병든 잎을 제거하고, 물 주는 간격을 늘려 통풍을 확보해주세요.</p>
+        <h4>Cause &amp; Treatment</h4>
+        <p>Excess soil moisture and poor airflow are the likely causes. Remove infected leaves and space out watering to improve airflow.</p>
       </div>
       <div class="result-card">
-        <h4>맞춤 방제 추천</h4>
-        <p>선택하신 재배 조건에 맞는 등록 약제 후보를 정리했어요. (데모 화면에서는 실제 제품 DB 연동 전 예시입니다)</p>
+        <h4>Personalized Treatment Recommendation</h4>
+        <p>We've compiled registered product candidates suited to your growing conditions. (This demo screen shows a sample before real product DB integration.)</p>
       </div>
       <div class="pls-warn">
         <div class="ic">⚠️</div>
-        <p>예상 수확일 기준 안전사용기간(PLS)을 자동으로 비교해 충돌 시 대체 제품을 안내해드려요.</p>
+        <p>We automatically compare the pre-harvest interval (PLS) against your expected harvest date and suggest alternatives if there's a conflict.</p>
       </div>
     </div>
   </main>
@@ -233,13 +233,13 @@
 
 <script>
   const params = new URLSearchParams(window.location.search);
-  const crop = params.get("crop") || "작물";
+  const crop = params.get("crop") || "Crop";
   const color = params.get("color") || "#3f7d20";
   const emoji = params.get("emoji") || "🌱";
 
   const chip = document.getElementById("cropChip");
   chip.style.background = color;
-  chip.innerHTML = `<span class="em">${emoji}</span> ${crop} 진단 중`;
+  chip.innerHTML = `<span class="em">${emoji}</span> Diagnosing ${crop}`;
 
   const fileInput = document.getElementById("fileInput");
   const uploadBox = document.getElementById("uploadBox");
@@ -253,7 +253,7 @@
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      uploadBox.innerHTML = `<img src="${e.target.result}" alt="업로드된 사진">`;
+      uploadBox.innerHTML = `<img src="${e.target.result}" alt="Uploaded photo">`;
       hasImage = true;
       diagnoseBtn.disabled = false;
       diagnoseBtn.classList.add("ready");

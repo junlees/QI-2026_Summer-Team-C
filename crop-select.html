@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>작물 선택 — AgriSage</title>
+<title>Select Crop — AgriSage</title>
 <style>
   :root {
     --bg: #f6f4ec;
@@ -105,12 +105,6 @@
     justify-content: center;
   }
   .crop-card .name-en {
-    font-size: 0.68rem;
-    opacity: 0.85;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-  .crop-card .name-ko {
     font-size: 0.98rem;
     font-weight: 800;
     letter-spacing: -0.01em;
@@ -175,38 +169,38 @@
 
   <header class="app-header">
     <a class="back-btn" href="index.html">←</a>
-    <h1>작물 선택</h1>
+    <h1>Select Crop</h1>
   </header>
 
   <main>
-    <p class="sub">진단할 작물을 선택해주세요. 작물마다 색으로 구분했어요 🎨</p>
+    <p class="sub">Please select the crop to diagnose. Each crop is color-coded 🎨</p>
 
     <div class="crop-grid" id="cropGrid"></div>
   </main>
 
   <div class="bottom-bar">
-    <div class="selected-line" id="selectedLine">아직 선택된 작물이 없어요</div>
-    <button class="next-btn" id="nextBtn" disabled>다음 (사진 촬영하기)</button>
+    <div class="selected-line" id="selectedLine">No crop selected yet</div>
+    <button class="next-btn" id="nextBtn" disabled>Next (take a photo)</button>
   </div>
 
 </div>
 
 <script>
   const crops = [
-    { ko: "사과",     en: "Apple",      emoji: "🍎", color: "#d62828" },
-    { ko: "체리",     en: "Cherry",     emoji: "🍒", color: "#9d0208" },
-    { ko: "포도",     en: "Grape",      emoji: "🍇", color: "#5a189a" },
-    { ko: "오렌지",   en: "Orange",     emoji: "🍊", color: "#f77f00" },
-    { ko: "복숭아",   en: "Peach",      emoji: "🍑", color: "#f4978e" },
-    { ko: "블루베리", en: "Blueberry",  emoji: "🫐", color: "#3a86ff" },
-    { ko: "딸기",     en: "Strawberry", emoji: "🍓", color: "#e5383b" },
-    { ko: "라즈베리", en: "Raspberry",  emoji: "🍓", color: "#c9184a" },
-    { ko: "옥수수",   en: "Corn",       emoji: "🌽", color: "#e2b93b" },
-    { ko: "감자",     en: "Potato",     emoji: "🥔", color: "#a9744f" },
-    { ko: "고추/피망", en: "Pepper Bell", emoji: "🫑", color: "#588157" },
-    { ko: "호박",     en: "Squash",     emoji: "🎃", color: "#f4a300" },
-    { ko: "콩(대두)", en: "Soybean",    emoji: "🫘", color: "#6a994e" },
-    { ko: "토마토",   en: "Tomato",     emoji: "🍅", color: "#e63946" },
+    { en: "Apple",      emoji: "🍎", color: "#d62828" },
+    { en: "Cherry",     emoji: "🍒", color: "#9d0208" },
+    { en: "Grape",      emoji: "🍇", color: "#5a189a" },
+    { en: "Orange",     emoji: "🍊", color: "#f77f00" },
+    { en: "Peach",      emoji: "🍑", color: "#f4978e" },
+    { en: "Blueberry",  emoji: "🫐", color: "#3a86ff" },
+    { en: "Strawberry", emoji: "🍓", color: "#e5383b" },
+    { en: "Raspberry",  emoji: "🍓", color: "#c9184a" },
+    { en: "Corn",       emoji: "🌽", color: "#e2b93b" },
+    { en: "Potato",     emoji: "🥔", color: "#a9744f" },
+    { en: "Pepper Bell", emoji: "🫑", color: "#588157" },
+    { en: "Squash",     emoji: "🎃", color: "#f4a300" },
+    { en: "Soybean",    emoji: "🫘", color: "#6a994e" },
+    { en: "Tomato",     emoji: "🍅", color: "#e63946" },
   ];
 
   const grid = document.getElementById("cropGrid");
@@ -222,7 +216,6 @@
       <div class="check">✓</div>
       <div class="emoji">${crop.emoji}</div>
       <div class="name-en">${crop.en}</div>
-      <div class="name-ko">${crop.ko}</div>
     `;
     card.addEventListener("click", () => selectCrop(crop, card));
     grid.appendChild(card);
@@ -232,14 +225,14 @@
     document.querySelectorAll(".crop-card").forEach((c) => c.classList.remove("selected"));
     card.classList.add("selected");
     selected = crop;
-    selectedLine.innerHTML = `선택한 작물: <b>${crop.ko} (${crop.en})</b>`;
+    selectedLine.innerHTML = `Selected crop: <b>${crop.en}</b>`;
     nextBtn.disabled = false;
     nextBtn.classList.add("ready");
   }
 
   nextBtn.addEventListener("click", () => {
     if (!selected) return;
-    const params = new URLSearchParams({ crop: selected.ko, en: selected.en, color: selected.color, emoji: selected.emoji });
+    const params = new URLSearchParams({ crop: selected.en, color: selected.color, emoji: selected.emoji });
     window.location.href = "diagnose.html?" + params.toString();
   });
 
