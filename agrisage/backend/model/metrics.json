@@ -1,0 +1,7 @@
+{
+  "best_val_acc": 0.8630952380952381,
+  "test_acc": 0.8690476190476191,
+  "test_loss": 0.3272984755181131,
+  "img_size": 128,
+  "note": "from-scratch CNN, no ImageNet pretrained weights (network policy)"
+}

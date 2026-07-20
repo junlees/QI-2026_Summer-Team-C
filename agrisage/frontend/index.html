@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgriSage — Crop Diagnosis Demo</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --green:#2e7d32; --green-light:#4caf50; --bg:#f6f8f4; --card:#ffffff;
+    --text:#1b1b1b; --gray:#666; --warn:#c62828; --warn-bg:#fdecea;
+    --safe-bg:#eaf6ec;
+  }
+  body { font-family:'Segoe UI', system-ui, sans-serif; background:var(--bg); color:var(--text); padding:0 0 60px; }
+  header { background:var(--green); color:#fff; padding:24px 32px; }
+  header h1 { font-size:22px; font-weight:800; }
+  header p { font-size:13px; opacity:0.9; margin-top:4px; }
+  main { max-width:760px; margin:24px auto; padding:0 16px; display:flex; flex-direction:column; gap:20px; }
+  .card { background:var(--card); border-radius:14px; padding:24px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+  .card h2 { font-size:16px; margin-bottom:14px; color:var(--green); }
+  label { font-size:13px; font-weight:600; color:var(--gray); display:block; margin-bottom:6px; }
+  input[type=file], input[type=date] {
+    width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; margin-bottom:14px;
+  }
+  .row { display:flex; gap:16px; align-items:center; margin-bottom:14px; }
+  button {
+    background:var(--green); color:#fff; border:none; padding:12px 22px; border-radius:8px;
+    font-size:14px; font-weight:700; cursor:pointer;
+  }
+  button:hover { background:var(--green-light); }
+  button:disabled { background:#aaa; cursor:not-allowed; }
+  #preview { max-width:100%; max-height:260px; border-radius:10px; margin-bottom:14px; display:none; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+  .badge.healthy { background:var(--safe-bg); color:var(--green); }
+  .badge.disease { background:var(--warn-bg); color:var(--warn); }
+  .badge.low { background:#fff3e0; color:#e65100; }
+  .pred-row { display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px solid #eee; }
+  .explain-block p { font-size:14px; line-height:1.6; margin-bottom:8px; }
+  .explain-block ul { margin:6px 0 0 18px; font-size:14px; line-height:1.6; }
+  .explain-block .greeting { font-style:italic; color:var(--gray); margin-bottom:14px; }
+  .explain-block .section-title { font-weight:700; margin-bottom:4px; }
+  .explain-block .section { margin-bottom:16px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid #eee; }
+  .pls-safe { color:var(--green); font-weight:700; }
+  .pls-violation { color:var(--warn); font-weight:700; }
+  .pls-invalid { color:#e65100; font-weight:700; }
+  #followupSection { display:none; }
+  .muted { color:var(--gray); font-size:12px; }
+  .spinner { font-size:13px; color:var(--gray); display:inline-flex; align-items:center; gap:8px; }
+  .spinner-icon {
+    width:14px; height:14px; border:2px solid #ccc; border-top-color:var(--green);
+    border-radius:50%; display:none; animation:spin 0.8s linear infinite;
+  }
+  .spinner-icon.active { display:inline-block; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .error-banner {
+    display:none; background:var(--warn-bg); color:var(--warn); border-radius:8px;
+    padding:12px 14px; font-size:13px; margin-bottom:14px; line-height:1.5;
+  }
+  .error-banner.show { display:block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌱 AgriSage — Local Demo</h1>
+  <p>From a single photo: diagnosis → explanation → treatment recommendation → PLS safety check → follow-up</p>
+</header>
+
+<main>
+  <div class="card">
+    <h2>1. Upload a leaf photo</h2>
+    <label>Image file (supported crops: apple, potato, tomato)</label>
+    <input type="file" id="imageInput" accept="image/*" />
+    <img id="preview" />
+
+    <label>Expected harvest date (optional)</label>
+    <input type="date" id="harvestDate" />
+
+    <div class="row">
+      <label style="margin:0; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="organicOnly" style="width:auto; margin:0;" /> Organic products only
+      </label>
+    </div>
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <button id="diagnoseBtn">Run Diagnosis</button>
+    <span class="spinner" id="spinner"><span class="spinner-icon" id="spinnerIcon"></span><span id="spinnerText"></span></span>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <h2>2. Diagnosis Result</h2>
+    <div id="diagnosisResult"></div>
+  </div>
+
+  <div class="card" id="explainCard" style="display:none;">
+    <h2>3. Explanation</h2>
+    <div id="explainResult" class="explain-block"></div>
+  </div>
+
+  <div class="card" id="recommendCard" style="display:none;">
+    <h2>4. Recommended Treatment &amp; PLS Safety Check</h2>
+    <div id="recommendResult"></div>
+  </div>
+
+  <div class="card" id="followupSection">
+    <h2>5. Follow-up</h2>
+    <p class="muted" id="followupInfo"></p>
+    <label style="margin-top:10px;">Upload a re-check photo N days later (demo: you can upload immediately)</label>
+    <input type="file" id="followupImage" accept="image/*" />
+    <button id="followupBtn">Submit Follow-up</button>
+    <div id="followupResult" style="margin-top:12px;"></div>
+  </div>
+</main>
+
+<script>
+const API = "";
+let currentCaseId = null;
+
+document.getElementById("imageInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById("preview");
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+});
+
+const REQUEST_TIMEOUT_MS = 45000;
+const SLOW_HINT_MS = 8000;
+
+function setErrorBanner(message) {
+  const banner = document.getElementById("errorBanner");
+  if (!message) {
+    banner.classList.remove("show");
+    banner.textContent = "";
+    return;
+  }
+  banner.textContent = message;
+  banner.classList.add("show");
+}
+
+function setLoading(isLoading, text) {
+  const btn = document.getElementById("diagnoseBtn");
+  const icon = document.getElementById("spinnerIcon");
+  const label = document.getElementById("spinnerText");
+  btn.disabled = isLoading;
+  document.getElementById("imageInput").disabled = isLoading;
+  document.getElementById("harvestDate").disabled = isLoading;
+  document.getElementById("organicOnly").disabled = isLoading;
+  icon.classList.toggle("active", isLoading);
+  label.textContent = isLoading ? (text || "Analyzing...") : "";
+}
+
+document.getElementById("diagnoseBtn").addEventListener("click", async () => {
+  const fileInput = document.getElementById("imageInput");
+  if (!fileInput.files[0]) { alert("Please upload an image first."); return; }
+
+  setErrorBanner(null);
+  setLoading(true, "Analyzing...");
+
+  const fd = new FormData();
+  fd.append("image", fileInput.files[0]);
+  const harvestDate = document.getElementById("harvestDate").value;
+  if (harvestDate) fd.append("expected_harvest_date", harvestDate);
+  fd.append("organic_only", document.getElementById("organicOnly").checked);
+
+  const controller = new AbortController();
+  const slowHintTimer = setTimeout(() => {
+    setLoading(true, "The model is taking a bit longer than usual. Please wait...");
+  }, SLOW_HINT_MS);
+  const abortTimer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${API}/api/pipeline`, { method: "POST", body: fd, signal: controller.signal });
+    if (!res.ok) {
+      let detail = "Request failed";
+      try { detail = (await res.json()).detail || detail; } catch (_) {}
+      if (res.status === 504) {
+        throw new Error(`The model server took too long to respond and timed out. Please try again shortly. (${detail})`);
+      }
+      if (res.status === 502) {
+        throw new Error(`The model server call failed. Please try again shortly. (${detail})`);
+      }
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    renderDiagnosis(data);
+    renderExplanation(data.explanation);
+    renderRecommendation(data.recommendation, data.pls_results, data.diagnosis);
+    renderFollowup(data.followup_case);
+  } catch (e) {
+    if (e.name === "AbortError") {
+      setErrorBanner(`The request didn't respond within ${REQUEST_TIMEOUT_MS / 1000} seconds, so it was cancelled. Check your connection and try again.`);
+    } else if (e instanceof TypeError) {
+      setErrorBanner("Could not send the request due to a network error. Please check your connection.");
+    } else {
+      setErrorBanner(e.message);
+    }
+  } finally {
+    clearTimeout(slowHintTimer);
+    clearTimeout(abortTimer);
+    setLoading(false);
+  }
+});
+
+function renderDiagnosis(data) {
+  const d = data.diagnosis;
+  const card = document.getElementById("resultCard");
+  card.style.display = "block";
+  const badgeClass = d.is_healthy ? "healthy" : "disease";
+  const badgeText = d.is_healthy ? "Healthy" : "Disease Detected";
+  let lowConfHtml = d.low_confidence_warning
+    ? `<span class="badge low">⚠ Low confidence — retake photo or consult an expert</span>`
+    : "";
+
+  let predRows = data.predictions.map(p =>
+    `<div class="pred-row"><span>${p.class_name}</span><span>${(p.confidence*100).toFixed(1)}%</span></div>`
+  ).join("");
+
+  document.getElementById("diagnosisResult").innerHTML = `
+    <p><b>${d.crop}</b> — ${d.disease_name}
+      <span class="badge ${badgeClass}">${badgeText}</span> ${lowConfHtml}
+    </p>
+    <p class="muted">Confidence: ${(d.confidence*100).toFixed(1)}%</p>
+    <div style="margin-top:10px;"><b class="muted">Top-3 Predictions</b>${predRows}</div>
+  `;
+}
+
+function renderExplanation(exp) {
+  const card = document.getElementById("explainCard");
+  card.style.display = "block";
+  document.getElementById("explainResult").innerHTML = `
+    <p class="greeting">${exp.greeting}</p>
+    <div class="section">
+      <p class="section-title">1. Disease Explanation: ${exp.disease_title}</p>
+      <p>${exp.disease_explanation}</p>
+    </div>
+    <div class="section">
+      <p class="section-title">2. Cause</p>
+      <p>${exp.cause}</p>
+    </div>
+    <div class="section">
+      <p class="section-title">3. Recommended Product and Reasoning</p>
+      <ul>
+        <li><b>Recommended Products:</b> ${exp.recommended_products}</li>
+        <li><b>Reasoning:</b> ${exp.reasoning}</li>
+      </ul>
+    </div>
+    <div class="section">
+      <p class="section-title">4. Usage Instructions</p>
+      <ul>
+        <li><b>Spray Interval:</b> ${exp.spray_interval}</li>
+      </ul>
+    </div>
+    <div class="section">
+      <p class="section-title">5. Safety Precautions</p>
+      <ul>
+        <li><b>Severity:</b> ${exp.severity}. ${exp.severity_note}</li>
+        <li><b>Other Precautions:</b> ${exp.other_precautions}</li>
+      </ul>
+    </div>
+    <p class="muted">Explanation source: ${exp.source === "llm" ? "Claude API" : "Template (offline)"}</p>
+  `;
+}
+
+function renderRecommendation(rec, pls, diagnosis) {
+  const card = document.getElementById("recommendCard");
+  if (diagnosis.is_healthy || !rec) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "block";
+  const rows = (pls || rec.products.map(p => ({...p, pls: null}))).map(p => {
+    let plsCell = "Harvest date not entered";
+    if (p.pls) {
+      const cls = p.pls.status === "safe" ? "pls-safe" : p.pls.status === "violation" ? "pls-violation" : "pls-invalid";
+      plsCell = `<span class="${cls}">${p.pls.message}</span>`;
+    }
+    return `<tr>
+      <td>${p.product_name}${p.organic_allowed ? " 🌿" : ""}</td>
+      <td>${p.active_ingredient}</td>
+      <td>${p.phi_days} days</td>
+      <td>${plsCell}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("recommendResult").innerHTML = `
+    <table>
+      <thead><tr><th>Product</th><th>Active Ingredient</th><th>Pre-Harvest Interval</th><th>PLS Check</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="muted" style="margin-top:8px;">🌿 = allowed on organic-certified farms. This demo's pesticide database is sample data and may differ from official registrations.</p>
+  `;
+}
+
+function renderFollowup(caseData) {
+  const section = document.getElementById("followupSection");
+  if (!caseData) { section.style.display = "none"; return; }
+  section.style.display = "block";
+  currentCaseId = caseData.case_id;
+  document.getElementById("followupInfo").textContent =
+    `case ${caseData.case_id} — follow-up needed by ${caseData.followup_due} (in this demo you can upload right away)`;
+  document.getElementById("followupResult").innerHTML = "";
+}
+
+document.getElementById("followupBtn").addEventListener("click", async () => {
+  const fileInput = document.getElementById("followupImage");
+  if (!fileInput.files[0]) { alert("Please upload a follow-up photo."); return; }
+  if (!currentCaseId) { alert("Run a diagnosis first."); return; }
+
+  const fd = new FormData();
+  fd.append("image", fileInput.files[0]);
+  const res = await fetch(`${API}/api/followup/${currentCaseId}`, { method: "POST", body: fd });
+  const data = await res.json();
+  if (!res.ok) { alert("Error: " + (data.detail || "Request failed")); return; }
+
+  const r = data.followup_result;
+  const cls = r.verdict === "improved" ? "pls-safe" : "pls-violation";
+  document.getElementById("followupResult").innerHTML =
+    `<p class="${cls}">${r.message}</p><p class="muted">Re-analysis result: ${r.new_prediction.class_name} (${(r.new_prediction.confidence*100).toFixed(1)}%)</p>`;
+});
+</script>
+
+</body>
+</html>
