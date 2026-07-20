@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-AgriSage — an AI-based crop disease diagnosis service. A photo of a leaf goes in, a diagnosis, cause, and treatment recommendation come out. Currently a Flask app serving a static, mobile-first frontend; the diagnosis model is not yet wired in.
+AgriSage — an AI-based crop disease diagnosis service. A photo of a leaf goes in, a diagnosis, cause, and treatment recommendation come out. Currently a Flask app serving a static, mobile-first frontend; the diagnosis model is not yet wired in. Login has no real backend yet — `login.html`'s form just redirects to `index.html`.
 
 ## Commands
 
@@ -39,13 +39,19 @@ no other build step, test suite, or linter in this repo yet.
 
 ```
 backend/           Flask app — serves frontend/ as static files, hosts the API
-  app.py           Entry point. Routes: "/" and "/<path>" serve frontend/*.
+  app.py           Entry point. "/" serves frontend/landing.html (the entry
+                    page); "/<path>" serves any other frontend/* file.
                     POST /api/diagnose is the placeholder entry point for the
                     diagnosis model (currently returns 501 not_implemented).
   requirements.txt
   models/           Empty — where diagnosis model code/weights will go.
                      Model weights should NOT be committed; see models/README.md.
 frontend/           Static HTML + Tailwind CSS, no JS framework.
+  landing.html        Entry page ("/"). Intro/marketing content with a
+                      "Log in" CTA -> login.html, and a "Continue as guest"
+                      link straight to index.html.
+  login.html         Login form. Submit redirects to index.html; no real
+                      auth is wired up yet. Back arrow returns to landing.html.
   index.html         Home screen
   crop-select.html   Crop picker (14 crops)
   diagnose.html       Photo upload -> diagnosis result (currently mock data)
@@ -64,10 +70,23 @@ render.yaml         Render deploy config — points at backend/, mirrors the
 file location (`BASE_DIR/frontend`), not the process CWD, so the app works
 whether started from the repo root or from inside `backend/`.
 
-**Screen flow**: `index.html` -> `crop-select.html` (crop chosen, passed via
-query params) -> `diagnose.html` (upload photo, show AI result). Each page
-links to the next with a plain `<a href>` / `window.location.href` — there is
-no client-side router.
+**Screen flow**: `landing.html` (entry page, "/") -> `login.html` (form,
+reached via the "Log in" CTA; also skippable via "Continue as guest") ->
+`index.html` (home) -> `crop-select.html` (crop chosen, passed via query
+params) -> `diagnose.html` (upload photo, show AI result). Each page links to
+the next with a plain `<a href>` / `window.location.href` — there is no
+client-side router.
+
+**Navigation**: `index.html`, `crop-select.html`, and `diagnose.html` all
+share the same top `<header>` — a logo row plus a Home/Diagnose/History/
+Profile tab row (`sticky top-0`). `crop-select.html` and `diagnose.html`
+additionally have a back-arrow + page-title row underneath, inside the same
+`<header>`. `landing.html` and `login.html` are pre-login screens and don't
+have this header/nav — `login.html` only has a small back arrow to
+`landing.html`. When adding a new page after login, copy the shared header
+block rather than inventing a different nav pattern; there used to be a
+bottom nav bar on `index.html` only — that was deliberately moved into the
+header and made consistent across pages, so don't reintroduce a bottom nav.
 
 **Frontend/backend boundary**: frontend pages are static and currently use
 mock data in `diagnose.html` for the diagnosis result. When wiring in a real

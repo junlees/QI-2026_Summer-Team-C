@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Log In — AgriSage</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="m-0 p-0 bg-page text-ink font-sans min-[431px]:py-8">
+
+<div class="max-w-[430px] mx-auto min-h-screen bg-app flex flex-col relative shadow-[0_0_40px_rgba(0,0,0,0.06)]">
+
+  <div class="px-[1.3rem] pt-[1.1rem]">
+    <a class="back-btn" href="landing.html">←</a>
+  </div>
+
+  <main class="flex-1 flex flex-col justify-center px-[1.6rem] py-[1rem]">
+    <div class="flex items-center justify-center gap-2 mb-[2.2rem]">
+      <div class="w-10 h-10 rounded-[10px] bg-accent flex items-center justify-center text-[1.3rem]">🌿</div>
+      <span class="font-extrabold text-[1.4rem] tracking-[-0.02em]">Agri<span class="text-accent">Sage</span></span>
+    </div>
+
+    <h1 class="m-0 mb-[0.4rem] text-[1.3rem] tracking-[-0.02em] text-center">Welcome back</h1>
+    <p class="m-0 mb-[1.8rem] text-muted text-[0.88rem] text-center leading-relaxed">Log in to diagnose your crops and pick up where you left off.</p>
+
+    <form id="loginForm" class="flex flex-col gap-[0.9rem]">
+      <label class="flex flex-col gap-[0.35rem]">
+        <span class="text-[0.78rem] font-bold text-muted">Email</span>
+        <input type="email" required placeholder="you@example.com"
+          class="w-full border border-border rounded-2xl px-4 py-[0.85rem] text-[0.92rem] bg-card text-ink outline-none focus:border-accent">
+      </label>
+      <label class="flex flex-col gap-[0.35rem]">
+        <span class="text-[0.78rem] font-bold text-muted">Password</span>
+        <input type="password" required placeholder="••••••••"
+          class="w-full border border-border rounded-2xl px-4 py-[0.85rem] text-[0.92rem] bg-card text-ink outline-none focus:border-accent">
+      </label>
+
+      <button type="submit" class="w-full border-none rounded-2xl py-[0.95rem] text-[0.95rem] font-bold bg-accent text-white cursor-pointer mt-[0.4rem]">
+        Log in
+      </button>
+    </form>
+
+    <a href="index.html" class="block text-center mt-[1.3rem] text-[0.82rem] text-muted">
+      Continue as guest →
+    </a>
+  </main>
+
+  <div class="px-[1.6rem] pb-[2rem]">
+    <p class="m-0 text-center text-[0.72rem] text-muted">
+      This is a prototype — no account or password is actually checked yet.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  document.getElementById("loginForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    window.location.href = "index.html";
+  });
+</script>
+
+</body>
+</html>
