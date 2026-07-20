@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+python-multipart
+anthropic
+pillow
+torch
+torchvision
+psycopg2-binary
+requests

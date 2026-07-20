@@ -1,0 +1,137 @@
+{
+  "_note": "Demo disease-pesticide mapping DB. Must be replaced/validated against official agricultural registry data before production use. PHI (Pre-Harvest Interval) unit: days.",
+  "diseases": {
+    "Apple___Apple_scab": {
+      "crop": "Apple",
+      "crop_en": "Apple",
+      "disease_name": "Apple Scab",
+      "pathogen_type": "fungal",
+      "products": [
+        {
+          "product_name": "Mancozeb WP",
+          "active_ingredient": "Mancozeb",
+          "phi_days": 14,
+          "organic_allowed": false,
+          "notes": "Effective as a preventive spray before and after bloom"
+        },
+        {
+          "product_name": "Captan WP",
+          "active_ingredient": "Captan",
+          "phi_days": 7,
+          "organic_allowed": false,
+          "notes": "Standard treatment interval: 7-10 days"
+        },
+        {
+          "product_name": "Lime Sulfur",
+          "active_ingredient": "Lime Sulfur",
+          "phi_days": 3,
+          "organic_allowed": true,
+          "notes": "Allowed on organic-certified farms; recommended before bud break"
+        }
+      ]
+    },
+    "Potato___Early_blight": {
+      "crop": "Potato",
+      "crop_en": "Potato",
+      "disease_name": "Early Blight",
+      "pathogen_type": "fungal",
+      "products": [
+        {
+          "product_name": "Chlorothalonil WP",
+          "active_ingredient": "Chlorothalonil",
+          "phi_days": 7,
+          "organic_allowed": false,
+          "notes": "Primarily preventive; apply on a regular schedule"
+        },
+        {
+          "product_name": "Azoxystrobin SC",
+          "active_ingredient": "Azoxystrobin",
+          "phi_days": 14,
+          "organic_allowed": false,
+          "notes": "Works as both curative and preventive treatment"
+        },
+        {
+          "product_name": "Neem Oil EC",
+          "active_ingredient": "Neem Oil",
+          "phi_days": 1,
+          "organic_allowed": true,
+          "notes": "Organic alternative; less effective than chemical fungicides"
+        }
+      ]
+    },
+    "Potato___Late_blight": {
+      "crop": "Potato",
+      "crop_en": "Potato",
+      "disease_name": "Late Blight",
+      "pathogen_type": "oomycete",
+      "products": [
+        {
+          "product_name": "Metalaxyl-M WP",
+          "active_ingredient": "Metalaxyl-M",
+          "phi_days": 7,
+          "organic_allowed": false,
+          "notes": "Spreads quickly, so early treatment is essential"
+        },
+        {
+          "product_name": "Mancozeb WP",
+          "active_ingredient": "Mancozeb",
+          "phi_days": 14,
+          "organic_allowed": false,
+          "notes": "Preventive purpose; recommended before and after rainfall"
+        },
+        {
+          "product_name": "Copper Hydroxide (Bordeaux Mixture)",
+          "active_ingredient": "Copper Hydroxide",
+          "phi_days": 3,
+          "organic_allowed": true,
+          "notes": "Allowed on organic-certified farms"
+        }
+      ]
+    },
+    "Tomato___Bacterial_spot": {
+      "crop": "Tomato",
+      "crop_en": "Tomato",
+      "disease_name": "Bacterial Spot",
+      "pathogen_type": "bacterial",
+      "products": [
+        {
+          "product_name": "Copper Hydroxide (Bordeaux Mixture)",
+          "active_ingredient": "Copper Hydroxide",
+          "phi_days": 3,
+          "organic_allowed": true,
+          "notes": "First choice for bacterial diseases; watch for resistance development"
+        },
+        {
+          "product_name": "Streptomycin Sulfate WP",
+          "active_ingredient": "Streptomycin Sulfate",
+          "phi_days": 5,
+          "organic_allowed": false,
+          "notes": "Antibiotic class; watch for resistance with repeated use"
+        }
+      ]
+    },
+    "Tomato___Late_blight": {
+      "crop": "Tomato",
+      "crop_en": "Tomato",
+      "disease_name": "Late Blight",
+      "pathogen_type": "oomycete",
+      "products": [
+        {
+          "product_name": "Metalaxyl-M WP",
+          "active_ingredient": "Metalaxyl-M",
+          "phi_days": 7,
+          "organic_allowed": false,
+          "notes": "Spreads fast; treat immediately upon early detection"
+        },
+        {
+          "product_name": "Copper Hydroxide (Bordeaux Mixture)",
+          "active_ingredient": "Copper Hydroxide",
+          "phi_days": 3,
+          "organic_allowed": true,
+          "notes": "Organic alternative option"
+        }
+      ]
+    }
+  },
+  "healthy_labels": ["Apple___healthy", "Potato___healthy", "Tomato___healthy"]
+}
