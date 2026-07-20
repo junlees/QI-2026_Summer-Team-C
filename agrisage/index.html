@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AgriSage — 작물 병충해 AI 진단</title>
+<style>
+  :root {
+    --bg: #f6f4ec;
+    --bg-alt: #eef2e3;
+    --text: #22301b;
+    --muted: #6d7a63;
+    --accent: #3f7d20;
+    --accent-dark: #2c5c14;
+    --accent-soft: #dcedc8;
+    --card: #ffffff;
+    --border: #e2e1d3;
+    --warn: #c1440e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-alt);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0,0,0,0.06);
+  }
+
+  header.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.3rem 0.9rem;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+  }
+  .logo .mark {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+  }
+  .logo span.sage { color: var(--accent); }
+  .icon-btn {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+  }
+
+  main { flex: 1; padding: 0.4rem 1.3rem 6.5rem; }
+
+  .greeting {
+    padding: 0.6rem 0 1.2rem;
+  }
+  .greeting h1 {
+    font-size: 1.5rem;
+    line-height: 1.35;
+    margin: 0 0 0.3rem;
+    letter-spacing: -0.02em;
+  }
+  .greeting p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .cta-card {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: #fff;
+    border-radius: 22px;
+    padding: 1.5rem 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 12px 24px rgba(44, 92, 20, 0.28);
+  }
+  .cta-card .cam {
+    width: 3.2rem;
+    height: 3.2rem;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+  .cta-card .body h2 {
+    margin: 0 0 0.3rem;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .cta-card .body p {
+    margin: 0 0 0.7rem;
+    font-size: 0.82rem;
+    opacity: 0.9;
+    line-height: 1.4;
+  }
+  .cta-card .go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #fff;
+    color: var(--accent-dark);
+    font-weight: 700;
+    font-size: 0.82rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 1.8rem 0 0.8rem;
+  }
+  .section-title h3 { margin: 0; font-size: 1rem; letter-spacing: -0.01em; }
+  .section-title span { color: var(--muted); font-size: 0.78rem; }
+
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 0.85rem 1rem;
+  }
+  .flow-step .num {
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .flow-step .txt h4 { margin: 0 0 0.15rem; font-size: 0.9rem; }
+  .flow-step .txt p { margin: 0; font-size: 0.78rem; color: var(--muted); }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem;
+  }
+  .feature-card .icon { font-size: 1.3rem; margin-bottom: 0.5rem; }
+  .feature-card h4 { margin: 0 0 0.3rem; font-size: 0.86rem; }
+  .feature-card p { margin: 0; font-size: 0.74rem; color: var(--muted); line-height: 1.45; }
+
+  .notice {
+    margin-top: 1.6rem;
+    background: #fdf1e7;
+    border: 1px solid #f2d6b8;
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .notice .ic { color: var(--warn); font-size: 1.05rem; }
+  .notice p { margin: 0; font-size: 0.78rem; color: #8a4a1f; line-height: 1.5; }
+
+  nav.bottom-nav {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 430px;
+    margin: 0 auto;
+    background: rgba(246, 244, 236, 0.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 0.6rem 0.6rem calc(0.6rem + env(safe-area-inset-bottom));
+  }
+  nav.bottom-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.68rem;
+    color: var(--muted);
+    padding: 0.3rem 0;
+  }
+  nav.bottom-nav a .ic { font-size: 1.15rem; }
+  nav.bottom-nav a.active { color: var(--accent-dark); font-weight: 700; }
+
+  @media (min-width: 431px) {
+    body { padding: 2rem 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="app-header">
+    <div class="logo">
+      <div class="mark">🌿</div>
+      Agri<span class="sage">Sage</span>
+    </div>
+    <div class="icon-btn">🔔</div>
+  </header>
+
+  <main>
+    <div class="greeting">
+      <h1>안녕하세요 🌱<br>오늘 작물 상태는 어떤가요?</h1>
+      <p>사진 한 장으로 병충해를 진단하고, 방제까지 끝까지 함께할게요.</p>
+    </div>
+
+    <a href="crop-select.html" style="display:block;">
+      <div class="cta-card">
+        <div class="cam">📷</div>
+        <div class="body">
+          <h2>사진으로 병충해 진단하기</h2>
+          <p>작물을 먼저 선택하고, 잎사귀 사진을 찍어주세요</p>
+          <span class="go">진단 시작 →</span>
+        </div>
+      </div>
+    </a>
+
+    <div class="section-title">
+      <h3>진단은 이렇게 진행돼요</h3>
+      <span>4 STEPS</span>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <div class="txt">
+          <h4>작물 선택 &amp; 사진 업로드</h4>
+          <p>진단할 작물을 고르고 잎사귀 사진을 촬영해요</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <div class="txt">
+          <h4>AI 진단 &amp; 설명</h4>
+          <p>병명과 원인, 대응법을 눈높이에 맞게 설명해요</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <div class="txt">
+          <h4>맞춤 방제 추천</h4>
+          <p>내 상황에 맞는 제품과 안전기준(PLS)을 확인해요</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">4</div>
+        <div class="txt">
+          <h4>사후 확인</h4>
+          <p>며칠 뒤 재사진으로 개선 여부를 다시 확인해요</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <h3>AgriSage가 다른 이유</h3>
+    </div>
+    <div class="grid-2">
+      <div class="feature-card">
+        <div class="icon">🧠</div>
+        <h4>이해되는 진단</h4>
+        <p>병의 특징과 발생 원인까지 쉬운 말로 설명해요</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎯</div>
+        <h4>맞춤형 추천</h4>
+        <p>유기농 여부 등 내 상황에 맞춰 제품을 추려요</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🛡️</div>
+        <h4>안전기준 자동체크</h4>
+        <p>수확일과 안전사용기간(PLS)을 자동 비교해요</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔁</div>
+        <h4>사후관리 루프</h4>
+        <p>방제 후 개선 여부까지 끝까지 확인해요</p>
+      </div>
+    </div>
+
+    <div class="notice">
+      <div class="ic">⚠️</div>
+      <p>본 서비스의 진단 결과는 참고용이며, 최종 방제 결정은 전문가 상담을 함께 활용하는 것을 권장해요.</p>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="active"><span class="ic">🏠</span>홈</a>
+    <a href="crop-select.html"><span class="ic">📷</span>진단</a>
+    <a href="#"><span class="ic">📋</span>기록</a>
+    <a href="#"><span class="ic">👤</span>내 정보</a>
+  </nav>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>작물 선택 — AgriSage</title>
+<style>
+  :root {
+    --bg: #f6f4ec;
+    --bg-alt: #eef2e3;
+    --text: #22301b;
+    --muted: #6d7a63;
+    --accent: #3f7d20;
+    --accent-dark: #2c5c14;
+    --accent-soft: #dcedc8;
+    --card: #ffffff;
+    --border: #e2e1d3;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-alt);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; }
+
+  .app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0,0,0,0.06);
+  }
+
+  header.app-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1.1rem 1.3rem 0.6rem;
+  }
+  .back-btn {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  header.app-header h1 {
+    margin: 0;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+  }
+
+  main { flex: 1; padding: 0.3rem 1.3rem 7.5rem; }
+
+  .sub {
+    margin: 0.2rem 0 1.1rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .crop-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+  .crop-card {
+    position: relative;
+    border: 2px solid transparent;
+    border-radius: 18px;
+    padding: 1.1rem 0.9rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+    color: #fff;
+  }
+  .crop-card:active { transform: scale(0.97); }
+  .crop-card.selected {
+    border-color: var(--text);
+    box-shadow: 0 0 0 3px rgba(34,48,27,0.12);
+  }
+  .crop-card .emoji {
+    font-size: 1.9rem;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .crop-card .name-en {
+    font-size: 0.68rem;
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .crop-card .name-ko {
+    font-size: 0.98rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .crop-card .check {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    width: 1.3rem;
+    height: 1.3rem;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 900;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .crop-card.selected .check { display: flex; }
+
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: rgba(246, 244, 236, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    padding: 0.9rem 1.3rem calc(0.9rem + env(safe-area-inset-bottom));
+  }
+  .bottom-bar .selected-line {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.55rem;
+    min-height: 1.1rem;
+  }
+  .bottom-bar .selected-line b { color: var(--text); }
+  .next-btn {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 0.95rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    background: var(--border);
+    color: var(--muted);
+    transition: background 0.15s, color 0.15s;
+  }
+  .next-btn.ready {
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="app-header">
+    <a class="back-btn" href="index.html">←</a>
+    <h1>작물 선택</h1>
+  </header>
+
+  <main>
+    <p class="sub">진단할 작물을 선택해주세요. 작물마다 색으로 구분했어요 🎨</p>
+
+    <div class="crop-grid" id="cropGrid"></div>
+  </main>
+
+  <div class="bottom-bar">
+    <div class="selected-line" id="selectedLine">아직 선택된 작물이 없어요</div>
+    <button class="next-btn" id="nextBtn" disabled>다음 (사진 촬영하기)</button>
+  </div>
+
+</div>
+
+<script>
+  const crops = [
+    { ko: "사과",     en: "Apple",      emoji: "🍎", color: "#d62828" },
+    { ko: "체리",     en: "Cherry",     emoji: "🍒", color: "#9d0208" },
+    { ko: "포도",     en: "Grape",      emoji: "🍇", color: "#5a189a" },
+    { ko: "오렌지",   en: "Orange",     emoji: "🍊", color: "#f77f00" },
+    { ko: "복숭아",   en: "Peach",      emoji: "🍑", color: "#f4978e" },
+    { ko: "블루베리", en: "Blueberry",  emoji: "🫐", color: "#3a86ff" },
+    { ko: "딸기",     en: "Strawberry", emoji: "🍓", color: "#e5383b" },
+    { ko: "라즈베리", en: "Raspberry",  emoji: "🍓", color: "#c9184a" },
+    { ko: "옥수수",   en: "Corn",       emoji: "🌽", color: "#e2b93b" },
+    { ko: "감자",     en: "Potato",     emoji: "🥔", color: "#a9744f" },
+    { ko: "고추/피망", en: "Pepper Bell", emoji: "🫑", color: "#588157" },
+    { ko: "호박",     en: "Squash",     emoji: "🎃", color: "#f4a300" },
+    { ko: "콩(대두)", en: "Soybean",    emoji: "🫘", color: "#6a994e" },
+    { ko: "토마토",   en: "Tomato",     emoji: "🍅", color: "#e63946" },
+  ];
+
+  const grid = document.getElementById("cropGrid");
+  const selectedLine = document.getElementById("selectedLine");
+  const nextBtn = document.getElementById("nextBtn");
+  let selected = null;
+
+  crops.forEach((crop) => {
+    const card = document.createElement("div");
+    card.className = "crop-card";
+    card.style.background = `linear-gradient(150deg, ${crop.color} 0%, ${shade(crop.color, -18)} 100%)`;
+    card.innerHTML = `
+      <div class="check">✓</div>
+      <div class="emoji">${crop.emoji}</div>
+      <div class="name-en">${crop.en}</div>
+      <div class="name-ko">${crop.ko}</div>
+    `;
+    card.addEventListener("click", () => selectCrop(crop, card));
+    grid.appendChild(card);
+  });
+
+  function selectCrop(crop, card) {
+    document.querySelectorAll(".crop-card").forEach((c) => c.classList.remove("selected"));
+    card.classList.add("selected");
+    selected = crop;
+    selectedLine.innerHTML = `선택한 작물: <b>${crop.ko} (${crop.en})</b>`;
+    nextBtn.disabled = false;
+    nextBtn.classList.add("ready");
+  }
+
+  nextBtn.addEventListener("click", () => {
+    if (!selected) return;
+    const params = new URLSearchParams({ crop: selected.ko, en: selected.en, color: selected.color, emoji: selected.emoji });
+    window.location.href = "diagnose.html?" + params.toString();
+  });
+
+  function shade(hex, percent) {
+    const num = parseInt(hex.slice(1), 16);
+    let r = (num >> 16) + Math.round(2.55 * percent);
+    let g = ((num >> 8) & 0x00ff) + Math.round(2.55 * percent);
+    let b = (num & 0x0000ff) + Math.round(2.55 * percent);
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+  }
+</script>
+
+</body>
+</html>
