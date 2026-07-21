@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app installable and usable offline.
 // Bump CACHE_NAME whenever precached files change so old caches get cleared.
-const CACHE_NAME = "agrisage-v1";
+const CACHE_NAME = "agrisage-v3";
 const PRECACHE_URLS = [
   "/",
   "landing.html",
@@ -37,15 +37,18 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// HTML pages: network-first (fresh content when online), fall back to cache
-// when offline. Everything else (css/js/icons): cache-first for speed.
+// HTML, CSS, and JS are all network-first: always fetch the latest from the
+// server when online (so edits show up on the very next load, not "one load
+// later"), and fall back to the cached copy only when offline. Only icons
+// and the manifest — which rarely change — are cache-first for speed.
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
   const isHTML = req.mode === "navigate" || req.headers.get("accept")?.includes("text/html");
+  const isCodeAsset = req.url.endsWith(".css") || req.url.endsWith(".js");
 
-  if (isHTML) {
+  if (isHTML || isCodeAsset) {
     event.respondWith(
       fetch(req)
         .then((res) => {

@@ -23,13 +23,26 @@
   }
 
   .crop-card {
-    @apply relative border-2 border-transparent rounded-[18px] pt-[1.1rem] px-[0.9rem] pb-[0.9rem] flex flex-col items-start gap-2 cursor-pointer text-white transition-transform active:scale-[0.97];
+    @apply relative aspect-square border-2 border-transparent rounded-[22px] p-3 flex flex-col items-center justify-center gap-[0.6rem] cursor-pointer text-white text-center overflow-hidden shadow-[0_6px_16px_-6px_rgba(0,0,0,0.35)] transition-all duration-150 active:scale-[0.96];
+  }
+  .crop-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.35), transparent 60%);
+    pointer-events: none;
   }
   .crop-card.selected {
-    @apply border-ink shadow-[0_0_0_3px_rgba(34,48,27,0.12)];
+    @apply border-white shadow-[0_12px_24px_-8px_rgba(0,0,0,0.4),0_0_0_3px_rgba(34,48,27,0.18)] scale-[1.03];
+  }
+  .crop-card .emoji-badge {
+    @apply relative z-10 w-[3.4rem] h-[3.4rem] rounded-full bg-white/25 backdrop-blur-sm ring-1 ring-white/40 flex items-center justify-center text-[1.9rem] shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)];
+  }
+  .crop-card .crop-name {
+    @apply relative z-10 text-[0.92rem] font-extrabold tracking-[-0.01em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)];
   }
   .crop-card .check {
-    @apply hidden absolute top-[0.7rem] right-[0.7rem] w-[1.3rem] h-[1.3rem] rounded-full bg-white text-ink text-xs font-black items-center justify-center;
+    @apply hidden absolute top-[0.6rem] right-[0.6rem] z-10 w-[1.5rem] h-[1.5rem] rounded-full bg-white text-ink text-xs font-black items-center justify-center shadow-[0_2px_6px_rgba(0,0,0,0.25)];
   }
   .crop-card.selected .check {
     @apply flex;
@@ -51,6 +64,10 @@
     @apply block;
   }
 
+  .preset-btn.active {
+    @apply border-accent bg-accent-soft text-accent-dark font-extrabold shadow-sm;
+  }
+
   .spinner {
     @apply hidden items-center gap-2 justify-center mt-[1.1rem] text-muted text-[0.85rem];
   }
@@ -58,3 +75,15 @@
     @apply flex;
   }
 }
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 2px;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+

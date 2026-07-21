@@ -50,8 +50,9 @@ frontend/           Static HTML + Tailwind CSS, no JS framework.
   landing.html        Entry page ("/"). Intro/marketing content with a
                       "Log in" CTA -> login.html, and a "Continue as guest"
                       link straight to index.html (the old, simpler guest home).
-  login.html         Login form + social-login button stubs. Submit redirects
-                      to dashboard.html. Link to signup.html. No real auth.
+  login.html         Email/password login form only (no social login — AgriSage
+                      accounts only). Submit redirects to dashboard.html. Link
+                      to signup.html. No real auth.
   signup.html        Email/password + certification (conventional/organic) and
                       default purpose (self_consumption/sale) radios. These are
                       the account-level personalization variables — saved via
@@ -112,11 +113,20 @@ frontend/           Static HTML + Tailwind CSS, no JS framework.
                       theme/background color). Linked from every page's
                       <head>. start_url is "/" (landing.html).
   sw.js                 Service worker: precaches every HTML page plus
-                      css/styles.css and js/store.js on install; HTML
-                      requests are network-first (cache fallback offline),
-                      everything else is cache-first. Bump CACHE_NAME when
-                      the precache list or any precached file changes, or
-                      installed clients keep the stale cache.
+                      css/styles.css and js/store.js on install. HTML *and*
+                      CSS/JS are all network-first (cache fallback only when
+                      offline) — this app is under active iteration, so
+                      "always fetch the latest" matters more than the
+                      offline/speed benefit of caching those. This was
+                      tried as cache-first, then stale-while-revalidate, and
+                      both caused real confusion during development: a CSS
+                      change would ship but installed/previously-visited
+                      clients kept rendering the old styles against new
+                      HTML/classes (looked like broken/overlapping layout)
+                      for one or more loads. Only icons/manifest — which
+                      basically never change — are cache-first. Still bump
+                      CACHE_NAME when the *precache list* changes (a file
+                      added/removed/renamed) so the old cache gets dropped.
   js/pwa.js              Registers sw.js on window load. Included via
                       <script src="js/pwa.js"> at the end of every page's
                       <body> (see "Hybrid app/web" below).

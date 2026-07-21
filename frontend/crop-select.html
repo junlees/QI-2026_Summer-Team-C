@@ -17,13 +17,12 @@
 
 <div class="max-w-[430px] mx-auto min-h-screen bg-app flex flex-col relative shadow-[0_0_40px_rgba(0,0,0,0.06)]">
 
-  <header class="sticky top-0 z-20 bg-app/95 backdrop-blur-[10px] border-b border-border">
+  <header class="sticky top-0 z-20 bg-app border-b border-border">
     <div class="flex items-center justify-between px-[1.3rem] pt-[1.1rem] pb-[0.6rem]">
       <div class="flex items-center gap-2 font-extrabold text-[1.15rem] tracking-[-0.02em]">
         <div class="w-8 h-8 rounded-[9px] bg-accent flex items-center justify-center text-[1.05rem]">🌿</div>
         Agri<span class="text-accent">Sage</span>
       </div>
-      <div class="icon-btn">🔔</div>
     </div>
     <nav class="flex px-[0.6rem] pb-[0.4rem]">
       <a href="dashboard.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">🏠</span>Home</a>
@@ -37,7 +36,7 @@
     </div>
   </header>
 
-  <main class="flex-1 px-[1.3rem] pt-[0.3rem] pb-[9rem]">
+  <main class="flex-1 px-[1.3rem] pt-[0.3rem] pb-[calc(9rem+env(safe-area-inset-bottom))]">
     <p class="mt-[0.2rem] mb-[1.1rem] text-muted text-[0.88rem] leading-relaxed">Select the crop to register. Each crop is color-coded 🎨</p>
 
     <div class="grid grid-cols-2 gap-[0.8rem]" id="cropGrid"></div>
@@ -63,18 +62,68 @@
 
       <div>
         <span class="block text-[0.78rem] font-bold text-muted mb-[0.5rem]">Purpose for this crop</span>
-        <select id="purposeSelect" class="w-full border border-border rounded-2xl px-4 py-[0.8rem] text-[0.88rem] bg-card text-ink outline-none focus:border-accent">
-          <option value="account_default">Use account default</option>
-          <option value="self_consumption">Self-consumption</option>
-          <option value="sale">Sale</option>
-        </select>
+        <div class="grid grid-cols-2 gap-[0.5rem]">
+          <label class="flex items-center justify-center text-center gap-1 border border-border rounded-2xl py-[0.75rem] px-1 text-[0.78rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="purposeChoice" value="self_consumption" checked class="hidden">
+            Self-consumption
+          </label>
+          <label class="flex items-center justify-center text-center gap-1 border border-border rounded-2xl py-[0.75rem] px-1 text-[0.78rem] font-bold cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-dark">
+            <input type="radio" name="purposeChoice" value="sale" class="hidden">
+            Sale
+          </label>
+        </div>
       </div>
 
-      <label class="flex flex-col gap-[0.35rem]">
-        <span class="text-[0.78rem] font-bold text-muted">Expected harvest date</span>
-        <input type="date" id="harvestDate"
-          class="w-full border border-border rounded-2xl px-4 py-[0.8rem] text-[0.88rem] bg-card text-ink outline-none focus:border-accent">
-      </label>
+      <div class="flex flex-col gap-[0.55rem]">
+        <div class="flex items-center justify-between">
+          <span class="text-[0.78rem] font-bold text-muted flex items-center gap-1.5">
+            <span>🗓️</span> Expected harvest date
+          </span>
+          <span id="daysLeftBadge" class="hidden text-[0.72rem] font-extrabold text-accent-dark bg-accent-soft px-2.5 py-[0.2rem] rounded-full tracking-tight"></span>
+        </div>
+
+        <div class="grid grid-cols-4 gap-[0.45rem]">
+          <button type="button" class="preset-btn border border-border rounded-2xl py-[0.55rem] text-[0.78rem] font-bold bg-card text-muted hover:border-accent hover:text-accent-dark transition-all duration-150 active:scale-95" data-months="1">+1 Mo</button>
+          <button type="button" class="preset-btn border border-border rounded-2xl py-[0.55rem] text-[0.78rem] font-bold bg-card text-muted hover:border-accent hover:text-accent-dark transition-all duration-150 active:scale-95" data-months="3">+3 Mo</button>
+          <button type="button" class="preset-btn border border-border rounded-2xl py-[0.55rem] text-[0.78rem] font-bold bg-card text-muted hover:border-accent hover:text-accent-dark transition-all duration-150 active:scale-95" data-months="6">+6 Mo</button>
+          <button type="button" class="preset-btn border border-border rounded-2xl py-[0.55rem] text-[0.78rem] font-bold bg-card text-muted hover:border-accent hover:text-accent-dark transition-all duration-150 active:scale-95" data-months="12">+1 Yr</button>
+        </div>
+
+        <!-- Custom Date Picker Trigger -->
+        <div id="customDateTrigger" class="relative flex items-center bg-card border border-border rounded-2xl px-3.5 py-[0.65rem] transition-all cursor-pointer hover:border-accent hover:shadow-xs select-none">
+          <div class="w-8 h-8 rounded-xl bg-accent-soft text-accent-dark flex items-center justify-center text-[1.1rem] shrink-0 mr-3 pointer-events-none">📅</div>
+          <div class="flex-1 flex flex-col justify-center min-w-0">
+            <span class="text-[0.65rem] text-muted font-bold tracking-wider uppercase">Harvest Date</span>
+            <span id="dateDisplay" class="text-muted font-extrabold text-[0.92rem]">Select a date...</span>
+          </div>
+          <span class="text-muted text-[0.75rem] ml-2 font-extrabold">▼</span>
+          <input type="date" id="harvestDate" class="hidden">
+        </div>
+
+        <!-- Custom Calendar Dropdown Card -->
+        <div id="calendarModal" class="hidden flex-col bg-card border border-border rounded-3xl p-4 shadow-xl mt-1.5 transition-all">
+          <!-- Calendar Header -->
+          <div class="flex items-center justify-between mb-3 px-1">
+            <button type="button" id="prevMonth" class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-ink font-bold hover:bg-app hover:border-accent transition-colors">‹</button>
+            <span id="calendarMonthYear" class="text-[0.92rem] font-extrabold text-ink tracking-tight"></span>
+            <button type="button" id="nextMonth" class="w-8 h-8 rounded-full border border-border flex items-center justify-center text-ink font-bold hover:bg-app hover:border-accent transition-colors">›</button>
+          </div>
+
+          <!-- Weekday Headers -->
+          <div class="grid grid-cols-7 text-center text-[0.72rem] font-extrabold text-muted mb-2">
+            <span class="text-warn/80">Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+          </div>
+
+          <!-- Days Grid -->
+          <div id="calendarDays" class="grid grid-cols-7 gap-1 text-center"></div>
+
+          <!-- Calendar Footer -->
+          <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-border px-1">
+            <button type="button" id="todayBtn" class="text-[0.78rem] font-bold text-accent-dark hover:underline">Select Today</button>
+            <button type="button" id="closeCalBtn" class="text-[0.78rem] font-bold text-muted hover:text-ink">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="mt-[2rem]">
@@ -87,7 +136,7 @@
     </div>
   </main>
 
-  <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[rgba(246,244,236,0.95)] backdrop-blur-[10px] border-t border-border px-[1.3rem] pt-[0.9rem] pb-[calc(0.9rem+env(safe-area-inset-bottom))]">
+  <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-app border-t border-border px-[1.3rem] pt-[0.9rem] pb-[calc(0.9rem+env(safe-area-inset-bottom))] z-20">
     <div class="text-[0.8rem] text-muted mb-[0.55rem] min-h-[1.1rem]" id="selectedLine">No crop selected yet</div>
     <button class="next-btn" id="addCropBtn" disabled>Add crop</button>
   </div>
@@ -101,7 +150,7 @@
     { en: "Cherry",     emoji: "🍒", color: "#9d0208" },
     { en: "Grape",      emoji: "🍇", color: "#5a189a" },
     { en: "Orange",     emoji: "🍊", color: "#f77f00" },
-    { en: "Peach",      emoji: "🍑", color: "#f4978e" },
+    { en: "Peach",      emoji: "🍑", color: "#e8806e" },
     { en: "Blueberry",  emoji: "🫐", color: "#3a86ff" },
     { en: "Strawberry", emoji: "🍓", color: "#e5383b" },
     { en: "Raspberry",  emoji: "🍓", color: "#c9184a" },
@@ -130,8 +179,8 @@
     card.style.background = `linear-gradient(150deg, ${crop.color} 0%, ${shade(crop.color, -18)} 100%)`;
     card.innerHTML = `
       <div class="check">✓</div>
-      <div class="w-[2.6rem] h-[2.6rem] rounded-[13px] bg-white/[0.28] flex items-center justify-center text-[1.9rem]">${crop.emoji}</div>
-      <div class="text-[0.98rem] font-extrabold tracking-[-0.01em]">${crop.en}</div>
+      <div class="emoji-badge">${crop.emoji}</div>
+      <div class="crop-name">${crop.en}</div>
     `;
     card.addEventListener("click", () => selectCrop(crop, card));
     grid.appendChild(card);
@@ -148,7 +197,164 @@
     validateForm();
   }
 
-  harvestDate.addEventListener("change", validateForm);
+  const daysLeftBadge = document.getElementById("daysLeftBadge");
+  const presetBtns = document.querySelectorAll(".preset-btn");
+
+  const customDateTrigger = document.getElementById("customDateTrigger");
+  const dateDisplay = document.getElementById("dateDisplay");
+  const calendarModal = document.getElementById("calendarModal");
+  const calendarMonthYear = document.getElementById("calendarMonthYear");
+  const calendarDays = document.getElementById("calendarDays");
+  const prevMonthBtn = document.getElementById("prevMonth");
+  const nextMonthBtn = document.getElementById("nextMonth");
+  const todayBtn = document.getElementById("todayBtn");
+  const closeCalBtn = document.getElementById("closeCalBtn");
+
+  let currentCalDate = new Date();
+
+  customDateTrigger.addEventListener("click", () => {
+    calendarModal.classList.toggle("hidden");
+    calendarModal.classList.toggle("flex");
+    if (!calendarModal.classList.contains("hidden")) {
+      renderCalendar();
+    }
+  });
+
+  closeCalBtn.addEventListener("click", () => {
+    calendarModal.classList.add("hidden");
+    calendarModal.classList.remove("flex");
+  });
+
+  prevMonthBtn.addEventListener("click", () => {
+    currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+    renderCalendar();
+  });
+
+  nextMonthBtn.addEventListener("click", () => {
+    currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+    renderCalendar();
+  });
+
+  todayBtn.addEventListener("click", () => {
+    const today = new Date();
+    selectDateValue(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    calendarModal.classList.add("hidden");
+    calendarModal.classList.remove("flex");
+  });
+
+  presetBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const months = parseInt(btn.dataset.months, 10);
+      const d = new Date();
+      d.setMonth(d.getMonth() + months);
+      selectDateValue(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      presetBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  function selectDateValue(y, m, d) {
+    const yyyy = y;
+    const mm = String(m).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    harvestDate.value = `${yyyy}-${mm}-${dd}`;
+    
+    const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    dateDisplay.textContent = `${monthNamesShort[m - 1]} ${d}, ${y}`;
+    dateDisplay.classList.remove("text-muted");
+    dateDisplay.classList.add("text-ink");
+
+    currentCalDate = new Date(y, m - 1, d);
+
+    updateDaysLeftBadge();
+    validateForm();
+  }
+
+  function renderCalendar() {
+    const year = currentCalDate.getFullYear();
+    const month = currentCalDate.getMonth();
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    calendarMonthYear.textContent = `${monthNames[month]} ${year}`;
+
+    calendarDays.innerHTML = "";
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const prevLastDate = new Date(year, month, 0).getDate();
+
+    const today = new Date();
+    const todayY = today.getFullYear();
+    const todayM = today.getMonth();
+    const todayD = today.getDate();
+
+    let selectedY = null, selectedM = null, selectedD = null;
+    if (harvestDate.value) {
+      const parts = harvestDate.value.split('-').map(Number);
+      selectedY = parts[0];
+      selectedM = parts[1] - 1;
+      selectedD = parts[2];
+    }
+
+    for (let x = firstDayIndex; x > 0; x--) {
+      const dayNum = prevLastDate - x + 1;
+      const dayEl = document.createElement("div");
+      dayEl.className = "h-8 w-8 mx-auto flex items-center justify-center text-[0.78rem] font-bold text-muted/30 select-none";
+      dayEl.textContent = dayNum;
+      calendarDays.appendChild(dayEl);
+    }
+
+    for (let i = 1; i <= lastDate; i++) {
+      const dayEl = document.createElement("button");
+      dayEl.type = "button";
+      let btnClasses = "h-8 w-8 mx-auto flex items-center justify-center rounded-xl text-[0.8rem] font-bold transition-all select-none ";
+
+      const isToday = (year === todayY && month === todayM && i === todayD);
+      const isSelected = (year === selectedY && month === selectedM && i === selectedD);
+
+      if (isSelected) {
+        btnClasses += "bg-accent text-white font-extrabold shadow-md scale-105";
+      } else if (isToday) {
+        btnClasses += "border-2 border-accent text-accent-dark bg-accent-soft/40 hover:bg-accent-soft";
+      } else {
+        btnClasses += "text-ink hover:bg-app hover:text-accent-dark";
+      }
+
+      dayEl.className = btnClasses;
+      dayEl.textContent = i;
+      dayEl.addEventListener("click", () => {
+        selectDateValue(year, month + 1, i);
+        calendarModal.classList.add("hidden");
+        calendarModal.classList.remove("flex");
+      });
+      calendarDays.appendChild(dayEl);
+    }
+  }
+
+  function updateDaysLeftBadge() {
+    if (!harvestDate.value) {
+      daysLeftBadge.classList.add("hidden");
+      return;
+    }
+    const parts = harvestDate.value.split('-');
+    if (parts.length < 3) return;
+    const selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = selectedDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0) {
+      daysLeftBadge.textContent = `In ~${diffDays} days (D-${diffDays})`;
+      daysLeftBadge.classList.remove("hidden");
+    } else if (diffDays === 0) {
+      daysLeftBadge.textContent = "Today (D-Day)";
+      daysLeftBadge.classList.remove("hidden");
+    } else {
+      daysLeftBadge.textContent = "Past date";
+      daysLeftBadge.classList.remove("hidden");
+    }
+  }
 
   function validateForm() {
     addCropBtn.disabled = !(selected && harvestDate.value);
@@ -158,14 +364,14 @@
   addCropBtn.addEventListener("click", () => {
     if (addCropBtn.disabled) return;
     const growingEnvironment = document.querySelector('input[name="growingEnvironment"]:checked').value;
-    const purposeChoice = document.getElementById("purposeSelect").value;
+    const purposeChoice = document.querySelector('input[name="purposeChoice"]:checked').value;
     const crop = {
       id: `crop_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: selected.en,
       emoji: selected.emoji,
       color: selected.color,
       growingEnvironment,
-      purposeOverride: purposeChoice === "account_default" ? null : purposeChoice,
+      purposeOverride: purposeChoice,
       harvestDate: harvestDate.value,
     };
     addCrop(crop);
@@ -180,12 +386,19 @@
     cropDetails.classList.add("hidden");
     cropDetails.classList.remove("flex");
     harvestDate.value = "";
-    document.getElementById("purposeSelect").value = "account_default";
+    dateDisplay.textContent = "Select a date...";
+    dateDisplay.classList.add("text-muted");
+    dateDisplay.classList.remove("text-ink");
+    daysLeftBadge.classList.add("hidden");
+    presetBtns.forEach(b => b.classList.remove("active"));
+    calendarModal.classList.add("hidden");
+    calendarModal.classList.remove("flex");
+    document.querySelector('input[name="purposeChoice"][value="self_consumption"]').checked = true;
     validateForm();
   }
 
   function purposeLabel(crop) {
-    if (!crop.purposeOverride) return "Account default";
+    if (!crop.purposeOverride) return "Self-consumption";
     return crop.purposeOverride === "sale" ? "Sale" : "Self-consumption";
   }
 
