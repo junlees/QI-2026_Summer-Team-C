@@ -2,5 +2,7 @@ services:
   - type: web
     name: agrisage
     env: python
+    autoDeploy: false
     buildCommand: pip install -r backend/requirements.txt && npm install --prefix frontend && npm run build --prefix frontend
     startCommand: gunicorn --chdir backend app:app
+

@@ -23,29 +23,35 @@
   }
 
   .crop-card {
-    @apply relative aspect-square border-2 border-transparent rounded-[22px] p-3 flex flex-col items-center justify-center gap-[0.6rem] cursor-pointer text-white text-center overflow-hidden shadow-[0_6px_16px_-6px_rgba(0,0,0,0.35)] transition-all duration-150 active:scale-[0.96];
-  }
-  .crop-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.35), transparent 60%);
-    pointer-events: none;
+    @apply relative aspect-square border border-border/80 rounded-3xl p-3.5 flex flex-col items-center justify-between cursor-pointer bg-card text-ink text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-accent/40 active:scale-95 select-none;
   }
   .crop-card.selected {
-    @apply border-white shadow-[0_12px_24px_-8px_rgba(0,0,0,0.4),0_0_0_3px_rgba(34,48,27,0.18)] scale-[1.03];
+    @apply border-accent bg-accent-soft/30 ring-2 ring-accent/60 shadow-md scale-[1.02];
   }
   .crop-card .emoji-badge {
-    @apply relative z-10 w-[3.4rem] h-[3.4rem] rounded-full bg-white/25 backdrop-blur-sm ring-1 ring-white/40 flex items-center justify-center text-[1.9rem] shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)];
+    @apply relative z-10 w-[3.5rem] h-[3.5rem] rounded-2xl flex items-center justify-center text-[2.1rem] transition-transform duration-200 shadow-sm;
+  }
+  .crop-card:hover .emoji-badge {
+    transform: scale(1.1);
   }
   .crop-card .crop-name {
-    @apply relative z-10 text-[0.92rem] font-extrabold tracking-[-0.01em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)];
+    @apply relative z-10 text-[0.88rem] font-extrabold tracking-tight text-ink transition-colors;
+  }
+  .crop-card:hover .crop-name {
+    color: #2c5c14;
+  }
+  .crop-card .crop-cat {
+    @apply relative z-10 text-[0.65rem] font-bold text-muted uppercase tracking-wider -mt-1;
   }
   .crop-card .check {
-    @apply hidden absolute top-[0.6rem] right-[0.6rem] z-10 w-[1.5rem] h-[1.5rem] rounded-full bg-white text-ink text-xs font-black items-center justify-center shadow-[0_2px_6px_rgba(0,0,0,0.25)];
+    @apply hidden absolute top-2.5 right-2.5 z-10 w-5 h-5 rounded-full bg-accent text-white text-[0.7rem] font-black items-center justify-center shadow-sm transition-all;
   }
   .crop-card.selected .check {
     @apply flex;
+  }
+
+  .cat-tab.active {
+    @apply bg-accent text-white font-extrabold shadow-sm border-accent;
   }
 
   .next-btn,
