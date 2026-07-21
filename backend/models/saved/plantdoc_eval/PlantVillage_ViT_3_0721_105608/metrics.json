@@ -1,0 +1,119 @@
+{
+  "model": "PlantVillage_ViT_3_0721_105608",
+  "arch": "ViTPlant",
+  "train_data": "plantvillage_prepared3",
+  "split": "all",
+  "n_samples": 5030,
+  "n_present_classes": 19,
+  "input_size": 224,
+  "accuracy": 0.18727634194831014,
+  "macro_f1_present": 0.18057779572304436,
+  "accuracy_disease_labels": 0.19894408447324213,
+  "accuracy_healthy_assumed": 0.13093858632676708,
+  "n_exact": 5030,
+  "n_weak": 0,
+  "accuracy_exact": 0.18727634194831014,
+  "macro_f1_exact": 0.18057779572304436,
+  "accuracy_weak": NaN,
+  "mean_conf_correct": 0.766060471534729,
+  "mean_conf_wrong": 0.7210934162139893,
+  "size_bucket_acc": [
+    [
+      "0-32px",
+      95,
+      0.0
+    ],
+    [
+      "32-64px",
+      480,
+      0.1
+    ],
+    [
+      "64-128px",
+      1012,
+      0.16205533596837945
+    ],
+    [
+      "128-infpx",
+      3443,
+      0.2120243973279117
+    ]
+  ],
+  "top_confusions": [
+    [
+      "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "Corn_(maize)___healthy",
+      469
+    ],
+    [
+      "Corn_(maize)___Northern_Leaf_Blight",
+      "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      201
+    ],
+    [
+      "Tomato___healthy",
+      "Corn_(maize)___healthy",
+      184
+    ],
+    [
+      "Tomato___Septoria_leaf_spot",
+      "Tomato___Early_blight",
+      144
+    ],
+    [
+      "Tomato___Tomato_mosaic_virus",
+      "Corn_(maize)___healthy",
+      139
+    ],
+    [
+      "Tomato___Leaf_Mold",
+      "Corn_(maize)___healthy",
+      105
+    ],
+    [
+      "Potato___Early_blight",
+      "Tomato___Early_blight",
+      91
+    ],
+    [
+      "Corn_(maize)___Common_rust_",
+      "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      90
+    ],
+    [
+      "Apple___healthy",
+      "Corn_(maize)___healthy",
+      89
+    ],
+    [
+      "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      82
+    ],
+    [
+      "Tomato___Bacterial_spot",
+      "Tomato___Early_blight",
+      78
+    ],
+    [
+      "Tomato___Late_blight",
+      "Tomato___Early_blight",
+      65
+    ],
+    [
+      "Tomato___Leaf_Mold",
+      "Tomato___Late_blight",
+      63
+    ],
+    [
+      "Apple___Cedar_apple_rust",
+      "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      62
+    ],
+    [
+      "Potato___Late_blight",
+      "Tomato___Late_blight",
+      61
+    ]
+  ]
+}

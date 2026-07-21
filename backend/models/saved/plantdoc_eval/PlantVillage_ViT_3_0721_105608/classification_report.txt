@@ -1,0 +1,25 @@
+                                                    precision    recall  f1-score   support
+
+                                Apple___Apple_scab     0.2253    0.2398    0.2323       171
+                          Apple___Cedar_apple_rust     0.4299    0.2584    0.3228       178
+                                   Apple___healthy     0.4750    0.1538    0.2324       247
+Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot     0.0734    0.8718    0.1355        78
+                       Corn_(maize)___Common_rust_     0.2727    0.0236    0.0435       127
+               Corn_(maize)___Northern_Leaf_Blight     0.5891    0.2065    0.3058       368
+                                 Grape___Black_rot     0.2113    0.1128    0.1471       133
+                                   Grape___healthy     0.4078    0.3318    0.3659       220
+                             Potato___Early_blight     0.2654    0.1299    0.1744       331
+                              Potato___Late_blight     0.4684    0.1486    0.2256       249
+                           Tomato___Bacterial_spot     0.1429    0.0071    0.0136       280
+                             Tomato___Early_blight     0.1479    0.4742    0.2254       213
+                              Tomato___Late_blight     0.1995    0.3818    0.2621       220
+                                Tomato___Leaf_Mold     0.2329    0.0582    0.0932       292
+                       Tomato___Septoria_leaf_spot     0.4536    0.1908    0.2686       435
+     Tomato___Spider_mites Two-spotted_spider_mite     0.0000    0.0000    0.0000         2
+            Tomato___Tomato_Yellow_Leaf_Curl_Virus     0.6805    0.2569    0.3730       829
+                      Tomato___Tomato_mosaic_virus     0.0000    0.0000    0.0000       261
+                                  Tomato___healthy     0.1333    0.0051    0.0097       396
+
+                                         micro avg     0.2591    0.1873    0.2174      5030
+                                         macro avg     0.2847    0.2027    0.1806      5030
+                                      weighted avg     0.3597    0.1873    0.2115      5030

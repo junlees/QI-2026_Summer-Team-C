@@ -1,0 +1,20 @@
+pv_class,support,f1
+Apple___Apple_scab,171,0.2323
+Apple___Cedar_apple_rust,178,0.3228
+Apple___healthy,247,0.2324
+Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,78,0.1355
+Corn_(maize)___Common_rust_,127,0.0435
+Corn_(maize)___Northern_Leaf_Blight,368,0.3058
+Grape___Black_rot,133,0.1471
+Grape___healthy,220,0.3659
+Potato___Early_blight,331,0.1744
+Potato___Late_blight,249,0.2256
+Tomato___Bacterial_spot,280,0.0136
+Tomato___Early_blight,213,0.2254
+Tomato___Late_blight,220,0.2621
+Tomato___Leaf_Mold,292,0.0932
+Tomato___Septoria_leaf_spot,435,0.2686
+Tomato___Spider_mites Two-spotted_spider_mite,2,0.0000
+Tomato___Tomato_Yellow_Leaf_Curl_Virus,829,0.3730
+Tomato___Tomato_mosaic_virus,261,0.0000
+Tomato___healthy,396,0.0097

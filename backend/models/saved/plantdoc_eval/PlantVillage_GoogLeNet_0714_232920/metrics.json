@@ -1,0 +1,119 @@
+{
+  "model": "PlantVillage_GoogLeNet_0714_232920",
+  "arch": "GoogLeNetPlant",
+  "train_data": "New Plant Diseases Dataset(Augmented)",
+  "split": "all",
+  "n_samples": 8878,
+  "n_present_classes": 28,
+  "input_size": 224,
+  "accuracy": 0.13640459562964632,
+  "macro_f1_present": 0.16173670998274228,
+  "accuracy_disease_labels": 0.1743863393810032,
+  "accuracy_healthy_assumed": 0.093966134032912,
+  "n_exact": 7856,
+  "n_weak": 1022,
+  "accuracy_exact": 0.14358452138492872,
+  "macro_f1_exact": 0.17186568283144044,
+  "accuracy_weak": 0.0812133072407045,
+  "mean_conf_correct": 0.7727264761924744,
+  "mean_conf_wrong": 0.7569425106048584,
+  "size_bucket_acc": [
+    [
+      "0-32px",
+      108,
+      0.0
+    ],
+    [
+      "32-64px",
+      563,
+      0.03019538188277087
+    ],
+    [
+      "64-128px",
+      1719,
+      0.0477021524141943
+    ],
+    [
+      "128-infpx",
+      6488,
+      0.17139334155363747
+    ]
+  ],
+  "top_confusions": [
+    [
+      "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "Corn_(maize)___healthy",
+      672
+    ],
+    [
+      "Peach___healthy",
+      "Corn_(maize)___healthy",
+      404
+    ],
+    [
+      "Blueberry___healthy",
+      "Corn_(maize)___healthy",
+      397
+    ],
+    [
+      "Raspberry___healthy",
+      "Corn_(maize)___healthy",
+      351
+    ],
+    [
+      "Strawberry___healthy",
+      "Corn_(maize)___healthy",
+      340
+    ],
+    [
+      "Pepper,_bell___healthy",
+      "Corn_(maize)___healthy",
+      252
+    ],
+    [
+      "Tomato___healthy",
+      "Corn_(maize)___healthy",
+      228
+    ],
+    [
+      "Tomato___Tomato_mosaic_virus",
+      "Corn_(maize)___healthy",
+      203
+    ],
+    [
+      "Cherry_(including_sour)___healthy",
+      "Corn_(maize)___healthy",
+      171
+    ],
+    [
+      "Corn_(maize)___Northern_Leaf_Blight",
+      "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      157
+    ],
+    [
+      "Soybean___healthy",
+      "Corn_(maize)___healthy",
+      157
+    ],
+    [
+      "Tomato___Leaf_Mold",
+      "Corn_(maize)___healthy",
+      132
+    ],
+    [
+      "Tomato___Septoria_leaf_spot",
+      "Tomato___Early_blight",
+      131
+    ],
+    [
+      "Corn_(maize)___Northern_Leaf_Blight",
+      "Corn_(maize)___healthy",
+      120
+    ],
+    [
+      "Blueberry___healthy",
+      "Strawberry___Leaf_scorch",
+      117
+    ]
+  ]
+}
