@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-AgriSage — an AI-based crop disease diagnosis service. A photo of a leaf goes in; an LLM explains the diagnosis, recommends treatment personalized to the user, and follows up after treatment. Currently a Flask app serving a static, mobile-first frontend; there is no real backend yet — auth, crop storage, diagnosis, and history are all mocked client-side in `frontend/js/store.js` (localStorage + a random `mockDiagnose()`). See "Personalization & mock data" below before touching any of the post-login screens.
+AgriSage — an AI-based crop disease diagnosis service. A photo of a leaf goes in; an LLM explains the diagnosis, recommends treatment personalized to the user, and follows up after treatment. Currently a Flask app serving a static, mobile-first frontend. The backend's diagnosis path is real now — image classifier (`backend/models/`) -> RAG + Gemini LLM explanation (`backend/ai/`) -> SQLite history (`backend/db/`) — but the frontend is not wired to it yet: auth, crop storage, diagnosis, and history on the pages are still mocked client-side in `frontend/js/store.js` (localStorage + a random `mockDiagnose()`). See "Personalization & mock data" below before touching any of the post-login screens.
 
 ## Commands
 
@@ -14,6 +14,16 @@ builds the Tailwind CSS once):
 ./scripts/setup.sh          # macOS / Linux
 ./scripts/setup.ps1         # Windows (PowerShell)
 ```
+
+Backend environment (`backend/.env`, loaded via python-dotenv — copy from
+`backend/.env.example`): `GEMINI_API_KEY` is required for the LLM layer
+(disease explanations and `/api/diagnose/<id>/ask` raise without it);
+`GEMINI_MODEL` / `GEMINI_EMBEDDING_MODEL` override the model defaults;
+`MODEL_CHECKPOINT_PATH` (+ optional `MODEL_CONFIG_PATH`) points at a trained
+classifier checkpoint — if unset, the pipeline substitutes a mock
+low-confidence prediction so the RAG/LLM flow can be exercised without model
+weights. Training/inference inside `backend/models/` has its own environment
+requirements — see `backend/models/CLAUDE.md`.
 
 Run the dev server:
 ```bash
@@ -41,11 +51,47 @@ no other build step, test suite, or linter in this repo yet.
 backend/           Flask app — serves frontend/ as static files, hosts the API
   app.py           Entry point. "/" serves frontend/landing.html (the entry
                     page); "/<path>" serves any other frontend/* file.
-                    POST /api/diagnose is the placeholder entry point for the
-                    diagnosis model (currently returns 501 not_implemented).
+                    API routes (details under "Frontend/backend boundary"):
+                    POST /api/diagnose validates the uploaded image (jpg/
+                    jpeg/png, 10 MB cap), saves it to backend/uploads/, runs
+                    ai/pipeline.diagnose(), and persists the result to SQLite
+                    via db/crud.save_diagnosis(); POST /api/diagnose/<id>/ask
+                    answers free-text follow-up questions; GET /api/history
+                    returns saved diagnoses.
+  .env.example      Template for backend/.env (see "Commands" for the
+                    variables). Copy it; never commit the real .env.
   requirements.txt
-  models/           Empty — where diagnosis model code/weights will go.
-                     Model weights should NOT be committed; see models/README.md.
+  ai/               Diagnosis intelligence — pure business logic, no Flask/DB.
+    pipeline.py     Orchestrates image -> classifier -> RAG lookup -> LLM
+                    explanation. Lazily loads the trained checkpoint from
+                    MODEL_CHECKPOINT_PATH; if unset, classify_image() returns
+                    a mock low-confidence prediction. Applies the same
+                    confidence gate as the frontend (CONFIDENCE_THRESHOLD =
+                    70 -> status "uncertain") plus a "healthy" short-circuit.
+    llm/            Gemini layer: client.py (API config, text gen,
+                    embeddings), explain.py (KB-grounded explanation +
+                    personalized recommendations), chat.py (RAG Q&A behind
+                    /ask), level_classifier.py (infer user understanding
+                    level -> tone), pls.py (deterministic PHI-days
+                    approximation so the LLM can't invent safety numbers).
+    rag/            data/AgriSage_Disease_Knowledge_Base_EN.json (38 classes)
+                    + store.py (exact class_id lookup used by the pipeline)
+                    + search.py (embedding search for free-text questions;
+                    embeddings cached to a JSON file, cosine similarity
+                    in-memory — deliberately no vector DB at 38 entries).
+  db/               SQLite persistence (backend/db/agrisage.db, created by
+                    init_db() at app start). models.py holds the schema
+                    (diagnoses, follow_up_reminders); crud.py the helpers
+                    (save_diagnosis, get_history, get_due_follow_ups,
+                    mark_follow_up_sent — no background scheduler yet, due
+                    follow-ups are meant to be polled on demand).
+  models/           PlantVillage crop-disease classifier: full training/eval/
+                    inference code (GoogLeNet & ViT-B/16 — train.py, test.py,
+                    predict.py, predict_leaf.py, config*.json). Has its own
+                    CLAUDE.md and README.md — read those first (conda env,
+                    dataset layout, config table). Datasets and .pth weights
+                    are NOT committed (shared via Google Drive; see
+                    models/README.md).
 frontend/           Static HTML + Tailwind CSS, no JS framework.
   landing.html        Entry page ("/"). Intro/marketing content with a
                       "Log in" CTA -> login.html, and a "Continue as guest"
@@ -98,9 +144,11 @@ frontend/           Static HTML + Tailwind CSS, no JS framework.
                       plus mockDiagnose() returning one of a few canned
                       results. Included via <script src="js/store.js"> before
                       each page's own inline script. Replace these functions
-                      with real fetch() calls once the API below exists —
-                      keep the function names/shapes the same so page code
-                      doesn't need to change.
+                      with real fetch() calls as the backend API gets wired
+                      in (diagnose/history already exist server-side — see
+                      "Frontend/backend boundary" below) — keep the function
+                      names/shapes the same so page code doesn't need to
+                      change.
   src/input.css       Tailwind entry point (@tailwind directives + a small
                       @layer components block — see "Styling" below)
   css/styles.css       Build output of `npm run build` — gitignored, not
@@ -180,21 +228,34 @@ the effective purpose for a crop — never read `crop.purposeOverride` or
 `confidence < 70` always yields the 🟡 "uncertain" state (disease name and
 recommendations are hidden; an expert-consult message shows instead),
 regardless of severity. Otherwise `severity === "very high"` yields 🔴
-(urgent), and anything else is 🟢. Don't reorder these checks.
+(urgent), and anything else is 🟢. Don't reorder these checks. The backend
+applies the same gate server-side in `backend/ai/pipeline.py`
+(`CONFIDENCE_THRESHOLD = 70` -> `status: "uncertain"`) — keep the two
+thresholds in sync.
 
 **Frontend/backend boundary**: everything under "Personalization & mock
-data" above is currently backed by `frontend/js/store.js`, not a real
-backend. The candidate real API shape (not implemented) is:
+data" above is still served to the pages by `frontend/js/store.js` — the
+frontend does not call the backend API yet. The backend itself is real now,
+though. Implemented in `backend/app.py`:
 ```
-POST /api/signup   POST /api/login   POST /api/crops   GET /api/crops
-POST /api/diagnose { image, crop_id } -> { class_id, confidence, severity }  (placeholder exists, 501)
-POST /api/explain  { class_id, user_profile } -> { symptoms, cause, recommendations, exclusion_reasons }
-POST /api/follow-up  GET /api/history
+POST /api/diagnose            multipart form: image (jpg/jpeg/png, <=10 MB)
+                              + crop_id, harvest_date (YYYY-MM-DD),
+                              user_input, certification, growing_environment,
+                              purpose.
+                              -> pipeline result (status healthy/uncertain/
+                              diagnosed, traffic_light, disease, confidence,
+                              explanation/recommendations, ...) +
+                              diagnosis_id; also saved to SQLite.
+POST /api/diagnose/<id>/ask   { question } -> KB-grounded answer via RAG.
+                              (The id is accepted but the answer is currently
+                              grounded only in KB search, not that diagnosis.)
+GET  /api/history             saved diagnoses, result_json parsed to result.
 ```
-When wiring these in, replace the bodies of `store.js`'s functions with
-`fetch()` calls and keep their names/return shapes so the page scripts don't
-need to change. `backend/app.py` only has `POST /api/diagnose` so far
-(returns 501), backed by code that should live under `backend/models/`.
+Still mock-only (candidate shape, not implemented): POST /api/signup,
+POST /api/login, POST/GET /api/crops, POST /api/follow-up. When wiring the
+frontend in, replace the bodies of `store.js`'s functions with `fetch()`
+calls and keep their names/return shapes so the page scripts don't need to
+change.
 
 **Styling**: all visual styling is Tailwind utility classes written directly
 in the HTML `class="..."` attributes — there are no more page-level `<style>`
@@ -233,10 +294,13 @@ worker. If you add, rename, or remove a precached file, update
 
 ## Structure is intentional — keep it
 
-`backend/` (server + model) and `frontend/` (static pages, Tailwind-styled)
-are deliberately separate so the model can be developed and deployed
-independently of the UI. Do not flatten this back into a single directory,
-do not move the model code anywhere other than `backend/models/`, and do not
+`backend/` (server + AI pipeline + model) and `frontend/` (static pages,
+Tailwind-styled) are deliberately separate so the model can be developed and
+deployed independently of the UI. Do not flatten this back into a single
+directory, keep the layering inside `backend/` (Flask/HTTP in `app.py`,
+model code in `backend/models/`, RAG/LLM orchestration in `backend/ai/` —
+which stays free of Flask and DB imports — persistence in `backend/db/`),
+and do not
 reintroduce per-page `<style>` blocks, a different CSS framework, or a
 different build tool for the frontend — Tailwind CLI via `frontend/package.json`
 is the one build path, and `render.yaml` / `scripts/setup.*` all assume it.
