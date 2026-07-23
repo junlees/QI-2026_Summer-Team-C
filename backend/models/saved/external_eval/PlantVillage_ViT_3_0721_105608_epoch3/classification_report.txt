@@ -1,0 +1,22 @@
+                                            precision    recall  f1-score   support
+
+                        Apple___Apple_scab     0.8904    0.6453    0.7483       592
+                  Apple___Cedar_apple_rust     0.8582    0.1849    0.3042       622
+                           Apple___healthy     0.7440    0.1802    0.2902       516
+                    Corn_(maize)___healthy     0.5746    1.0000    0.7299       204
+                         Grape___Black_rot     0.2795    0.0792    0.1234       808
+              Grape___Esca_(Black_Measles)     0.4593    0.6982    0.5541       888
+Grape___Leaf_blight_(Isariopsis_Leaf_Spot)     0.1070    0.2560    0.1509       672
+                           Grape___healthy     0.0085    0.0036    0.0051      1109
+                          Potato___healthy     0.4198    0.2736    0.3313       201
+                   Tomato___Bacterial_spot     0.0000    0.0000    0.0000         9
+                     Tomato___Early_blight     0.3773    0.3718    0.3745       277
+                      Tomato___Late_blight     0.0600    0.1463    0.0851       123
+                        Tomato___Leaf_Mold     0.0000    0.0000    0.0000         9
+               Tomato___Septoria_leaf_spot     0.6889    0.5444    0.6082       720
+                      Tomato___Target_Spot     0.0000    0.0000    0.0000        54
+                          Tomato___healthy     0.0000    0.0000    0.0000       466
+
+                                 micro avg     0.3589    0.3056    0.3301      7270
+                                 macro avg     0.3417    0.2740    0.2691      7270
+                              weighted avg     0.4084    0.3056    0.3093      7270
