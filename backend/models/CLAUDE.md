@@ -29,6 +29,7 @@ PY=/home/kntst/anaconda3/envs/env1/bin/python   # torch 2.9.1+cu128, torchvision
 "$PY" test.py -r saved/models/<name>/<run>/model_best.pth   # -r만 줘도 옆의 config.json 자동 로드
 
 # 추론 (predict.py: PlantVillage식 잎사진 직접 분류 / predict_leaf.py: 실사진→잎 검출→중앙 잎 크롭 256×256→분류)
+#   잎 검출 함수들(vegetation_mask_exg/find_center_leaf 등)은 leaf_detect.py로 분리됨 — predict_leaf.py가 import해서 사용
 "$PY" predict.py <image ...> -r saved/models/<name>/<run>/model_best.pth [-k 5]
 "$PY" predict_leaf.py <image ...> -r saved/models/<name>/<run>/model_best.pth [--method auto] [--save-crop] [--debug]
 
@@ -68,6 +69,8 @@ GoogLeNet은 `googlenet_loss`(aux 포함)+SGD(StepLR), ViT는 `cross_entropy`(la
 `config.json`이 파이프라인 전체를 선언한다. `ConfigParser.init_obj(name, module)`가 config의 `type`/`args`를 읽어 해당 모듈의 클래스를 **동적 생성**한다 — 새 모델/로더/스케줄러는 코드가 아니라 config에서 갈아끼운다.
 
 - `train.py` — 오케스트레이터: `init_obj`로 data_loader/arch/optimizer/lr_scheduler 생성, loss/metric은 `getattr`로 함수 핸들 확보, `Trainer` 구동. 상단에서 Python/NumPy/Torch seed와 deterministic cuDNN 설정을 고정한다.
+- `leaf_detect.py` — **torch 없이 import되는** 잎 검출 모듈(cv2/numpy/PIL만). predict_leaf.py의 검출 함수들(ExG Otsu → GrabCut 폴백 → 연결요소 → 중심 최근접 선택)을 이식했고, 두 가지가 추가됐다: ① `detect_and_crop_leaf(image_path, ...)` 고수준 API — `backend/ai/pipeline.py`가 진단 전처리로 호출한다(JSON 직렬화 가능한 dict 반환, EXIF 회전을 픽셀에 반영해 bbox가 브라우저 표시 방향과 일치). ② 밀집 군락 대응 watershed 분할 — 선택된 덩어리가 화면 30%를 넘으면 거리변환 코어(최대의 40% 이상) 기반 watershed로 겹친 잎을 분리하고 조각(최대 하위 잎 대비 면적 30% 미만 또는 종횡비 3.5 초과)을 걸러낸 뒤 다시 고른다. 단일 잎 클로즈업은 코어가 1개라 분할되지 않는다. **torch/predict/test_external을 import하지 말 것** — Flask 백엔드가 싸게 import하는 것이 목적.
+- `weights/` — 배포용 슬림 체크포인트. `classification_model.pth`(38MB: state_dict + arch/epoch 메타만, optimizer/ConfigParser 없음 — `ckpt['state_dict']` 인덱싱은 여전히 필요)는 PlantVillage_GoogLeNet_6 checkpoint-epoch4의 사본으로, **"`*.pth` 커밋 금지" 규칙의 유일한 예외**다(.gitignore에 `!weights/classification_model.pth` 명시). `classes.json`(prepared6 12클래스, ImageFolder 정렬 순서)이 함께 있어 추론 시 학습 데이터셋 없이 클래스명을 복원한다 — `backend/ai/pipeline.py`가 체크포인트 옆의 이 파일을 자동 사용.
 - `base/` — 이식된 템플릿 기반 클래스(`BaseModel`, `BaseDataLoader`, `BaseTrainer`). `base_trainer.py`가 모델·optimizer·scheduler·RNG 체크포인트 저장/재개와 config의 `monitor` 기준 best 관리를 담당한다.
 - `trainer/trainer.py` — 학습/검증 루프. loss는 샘플 수로 가중하고 accuracy·macro_f1은 epoch 전체 예측으로 정확히 계산해 TensorBoard에 기록한다. lr은 수동 기록.
 - `parse_config.py`, `logger/`, `utils/` — 템플릿 그대로.
@@ -131,5 +134,7 @@ GoogLeNet은 `googlenet_loss`(aux 포함)+SGD(StepLR), ViT는 `cross_entropy`(la
 - 데이터셋을 새로 나누면 **반드시 재학습**한다. 기존 모델을 새 test로 평가하면 그 test가 이전 train에 포함됐을 수 있어 누수가 된다.
 - **data_dir 경로 불일치**: `config.json`~`config5`는 `/mnt/d/Project/QI/AgriSage/dataset/`를, `config6`~(config6/config_vit6/config_vit6_scratch)는 repo `backend/models/dataset/`를 가리킨다. 데이터셋이 두 위치에 나뉘어 있고 **prepared6은 repo에만** 있으니, 새 config를 만들 땐 데이터가 실제 있는 경로를 확인할 것.
 - **StepLR 단축 학습 함정**: `epochs`와 `step_size`가 같으면(예: config4의 epochs 10·step_size 10) LR 감쇠가 마지막 에폭 뒤에 걸려 학습 중 **한 번도 적용되지 않는다**(사실상 lr 고정). 짧게 돌릴 땐 step_size를 줄일 것(config6은 step 4로 조정).
-- `saved/`, `*.pth`, `dataset/`은 `.gitignore` 처리됨(체크포인트는 각 ~77MB).
+- `saved/`, `*.pth`, `dataset/`은 `.gitignore` 처리됨(체크포인트는 각 ~77MB). **유일한 예외**: 배포용 `weights/classification_model.pth`(38MB 슬림본) — 위 "아키텍처" 참조. 다른 체크포인트를 커밋하려 하지 말 것.
+- 슬림 체크포인트에는 ConfigParser가 없어 어떤 `weights_only` 설정으로도 로드되지만, 학습 산출 체크포인트(saved/)는 여전히 `weights_only=False`가 필요하다.
+- `leaf_detect.py`는 `backend/ai/pipeline.py`가 런타임에 import한다 — 시그니처를 바꾸면 백엔드 진단 API가 깨진다. torch를 import에 추가하지 말 것.
 - 별도의 요청이 없으면 절대 git commit 하지 말것.
