@@ -53,10 +53,9 @@
     <!-- Search & Category Filters -->
     <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
       <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
-        <button type="button" class="cat-tab active border border-border rounded-xl px-3.5 py-1.5 text-[0.78rem] font-bold bg-card text-muted hover:border-accent transition-all shrink-0" data-cat="all">All (14)</button>
+        <button type="button" class="cat-tab active border border-border rounded-xl px-3.5 py-1.5 text-[0.78rem] font-bold bg-card text-muted hover:border-accent transition-all shrink-0" data-cat="all">All (3)</button>
         <button type="button" class="cat-tab border border-border rounded-xl px-3.5 py-1.5 text-[0.78rem] font-bold bg-card text-muted hover:border-accent transition-all shrink-0" data-cat="fruit">Fruits 🍎</button>
-        <button type="button" class="cat-tab border border-border rounded-xl px-3.5 py-1.5 text-[0.78rem] font-bold bg-card text-muted hover:border-accent transition-all shrink-0" data-cat="veggie">Vegetables 🌽</button>
-        <button type="button" class="cat-tab border border-border rounded-xl px-3.5 py-1.5 text-[0.78rem] font-bold bg-card text-muted hover:border-accent transition-all shrink-0" data-cat="grain">Grains 🫘</button>
+        <button type="button" class="cat-tab border border-border rounded-xl px-3.5 py-1.5 text-[0.78rem] font-bold bg-card text-muted hover:border-accent transition-all shrink-0" data-cat="veggie">Vegetables 🍅</button>
       </div>
       <div class="relative flex-1 sm:max-w-[200px]">
         <input type="text" id="cropSearch" placeholder="Search crop..." class="w-full bg-card border border-border rounded-xl px-3 py-1.5 pl-8 text-[0.8rem] text-ink outline-none focus:border-accent">
@@ -173,18 +172,7 @@
 <script>
   const crops = [
     { en: "Apple",      emoji: "🍎", color: "#d62828", cat: "fruit", label: "Fruit" },
-    { en: "Cherry",     emoji: "🍒", color: "#9d0208", cat: "fruit", label: "Fruit" },
     { en: "Grape",      emoji: "🍇", color: "#5a189a", cat: "fruit", label: "Fruit" },
-    { en: "Orange",     emoji: "🍊", color: "#f77f00", cat: "fruit", label: "Fruit" },
-    { en: "Peach",      emoji: "🍑", color: "#e8806e", cat: "fruit", label: "Fruit" },
-    { en: "Blueberry",  emoji: "🫐", color: "#3a86ff", cat: "fruit", label: "Fruit" },
-    { en: "Strawberry", emoji: "🍓", color: "#e5383b", cat: "fruit", label: "Fruit" },
-    { en: "Raspberry",  emoji: "🍓", color: "#c9184a", cat: "fruit", label: "Fruit" },
-    { en: "Corn",       emoji: "🌽", color: "#e2b93b", cat: "veggie", label: "Veggie" },
-    { en: "Potato",     emoji: "🥔", color: "#a9744f", cat: "veggie", label: "Veggie" },
-    { en: "Pepper Bell", emoji: "🫑", color: "#588157", cat: "veggie", label: "Veggie" },
-    { en: "Squash",     emoji: "🎃", color: "#f4a300", cat: "veggie", label: "Veggie" },
-    { en: "Soybean",    emoji: "🫘", color: "#6a994e", cat: "grain", label: "Grain" },
     { en: "Tomato",     emoji: "🍅", color: "#e63946", cat: "veggie", label: "Veggie" },
   ];
 
