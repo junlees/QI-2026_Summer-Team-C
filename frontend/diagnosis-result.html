@@ -72,6 +72,17 @@
         <div class="text-[0.86rem] font-bold" id="trafficLightLabel"></div>
       </div>
 
+      <div class="hidden bg-card border border-border rounded-2xl p-[0.9rem] mb-[1.2rem]" id="photoCard">
+        <h4 class="m-0 mb-[0.6rem] text-[0.78rem] text-muted uppercase tracking-[0.04em]">Analyzed Photo</h4>
+        <div class="flex justify-center">
+          <div class="relative inline-block max-w-full">
+            <img src="" alt="Analyzed leaf photo" class="block max-w-full max-h-[260px] object-contain rounded-[12px]" id="analyzedPhoto">
+            <div class="hidden absolute border-2 border-danger rounded-[4px] pointer-events-none" id="leafBox"></div>
+          </div>
+        </div>
+        <p class="hidden m-0 mt-[0.5rem] text-[0.74rem] text-muted text-center" id="leafBoxCaption"></p>
+      </div>
+
       <div class="hidden" id="uncertainState">
         <div class="bg-caution-soft border border-[#eddca0] rounded-2xl p-[1.2rem]">
           <h3 class="m-0 mb-[0.4rem] text-[0.95rem]">We can't confidently identify this issue</h3>
@@ -163,6 +174,34 @@
     const chip = document.getElementById("cropChip");
     chip.style.background = color;
     chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${escapeHtml(emoji)}</span> ${escapeHtml(cropName)}`;
+
+    // Analyzed photo + bounding box over the auto-selected leaf. The bbox is
+    // in the photo's intrinsic pixel space (server applies EXIF rotation, so
+    // it matches the browser's displayed orientation); position it with
+    // percentages so it stays aligned at any display size.
+    const leafDet = result.leafDetection || null;
+    if (pending.image) {
+      const photo = document.getElementById("analyzedPhoto");
+      const leafBox = document.getElementById("leafBox");
+      const boxCaption = document.getElementById("leafBoxCaption");
+      document.getElementById("photoCard").classList.remove("hidden");
+      photo.src = pending.image;
+      const placeLeafBox = () => {
+        if (!(leafDet && leafDet.applied && Array.isArray(leafDet.bbox) && photo.naturalWidth && photo.naturalHeight)) return;
+        const [bx0, by0, bx1, by1] = leafDet.bbox;
+        leafBox.style.left = (bx0 / photo.naturalWidth) * 100 + "%";
+        leafBox.style.top = (by0 / photo.naturalHeight) * 100 + "%";
+        leafBox.style.width = ((bx1 - bx0) / photo.naturalWidth) * 100 + "%";
+        leafBox.style.height = ((by1 - by0) / photo.naturalHeight) * 100 + "%";
+        leafBox.classList.remove("hidden");
+        boxCaption.textContent = leafDet.fallback
+          ? "No clear leaf outline found — the center of the photo was analyzed instead."
+          : `Detected leaf — auto-selected${leafDet.num_candidates > 1 ? ` from ${leafDet.num_candidates} candidates` : ""} and sent to the classifier.`;
+        boxCaption.classList.remove("hidden");
+      };
+      if (photo.complete && photo.naturalWidth) placeLeafBox();
+      else photo.onload = placeLeafBox;
+    }
 
     // Escape LLM/API-provided strings before any innerHTML insertion.
     const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

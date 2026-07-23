@@ -9,7 +9,7 @@ import os
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 # ---------------------------------------------------------------- 잎 검출
@@ -107,11 +107,11 @@ def detect_and_crop_leaf(image_path, out_path=None, method='auto',
     잎을 못 찾으면 중앙 정사각 크롭으로 폴백(fallback=True).
     반환 dict는 JSON 직렬화 가능(모든 값이 파이썬 기본 타입).
     """
-    bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    if bgr is None:  # cv2가 못 읽으면 PIL 폴백
-        rgb = np.array(Image.open(image_path).convert('RGB'))
-    else:
-        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    # PIL 로드 + EXIF 회전 적용. 폰 세로 사진은 픽셀은 가로인데 EXIF로 회전
+    # 표시되므로, 회전을 실제 픽셀에 반영해야 bbox 좌표가 브라우저 표시
+    # 방향과 일치한다(프론트의 바운딩박스 오버레이 정합).
+    img = ImageOps.exif_transpose(Image.open(image_path))
+    rgb = np.array(img.convert('RGB'))
 
     bbox, _mask, cands, used = find_center_leaf(rgb, method, min_area_frac, pad)
     fallback = bbox is None
