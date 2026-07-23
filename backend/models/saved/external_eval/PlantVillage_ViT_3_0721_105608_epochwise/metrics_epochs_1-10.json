@@ -1,0 +1,1470 @@
+{
+  "model": "PlantVillage_ViT_3 (ViT-B/16, 25 classes)",
+  "run": "0721_105608",
+  "eval": "external cross-domain (test_external mapping, all)",
+  "n_samples": 7270,
+  "n_present_classes": 16,
+  "present_classes": [
+    "Apple___Apple_scab",
+    "Apple___Cedar_apple_rust",
+    "Apple___healthy",
+    "Corn_(maize)___healthy",
+    "Grape___Black_rot",
+    "Grape___Esca_(Black_Measles)",
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+    "Grape___healthy",
+    "Potato___healthy",
+    "Tomato___Bacterial_spot",
+    "Tomato___Early_blight",
+    "Tomato___Late_blight",
+    "Tomato___Leaf_Mold",
+    "Tomato___Septoria_leaf_spot",
+    "Tomato___Target_Spot",
+    "Tomato___healthy"
+  ],
+  "support": {
+    "Apple___Apple_scab": 592,
+    "Apple___Cedar_apple_rust": 622,
+    "Apple___healthy": 516,
+    "Corn_(maize)___healthy": 204,
+    "Grape___Black_rot": 808,
+    "Grape___Esca_(Black_Measles)": 888,
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 672,
+    "Grape___healthy": 1109,
+    "Potato___healthy": 201,
+    "Tomato___Bacterial_spot": 9,
+    "Tomato___Early_blight": 277,
+    "Tomato___Late_blight": 123,
+    "Tomato___Leaf_Mold": 9,
+    "Tomato___Septoria_leaf_spot": 720,
+    "Tomato___Target_Spot": 54,
+    "Tomato___healthy": 466
+  },
+  "per_dataset_n": {
+    "gvlid": 3477,
+    "multicrop": 1591,
+    "plantpathology": 1730,
+    "tomatoleaf": 472
+  },
+  "checkpoints": {
+    "epoch1": {
+      "accuracy": 0.20894085281980743,
+      "macro_f1_present": 0.19311237194610842,
+      "acc_disease": 0.24905739421868453,
+      "acc_healthy": 0.13221153846153846,
+      "per_dataset": {
+        "gvlid": 0.16479723899913717,
+        "multicrop": 0.32935260842237585,
+        "plantpathology": 0.20346820809248556,
+        "tomatoleaf": 0.1483050847457627
+      },
+      "mean_conf_correct": 0.3098156452178955,
+      "mean_conf_wrong": 0.18446363508701324,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.5958829902491874,
+        "Apple___Cedar_apple_rust": 0.1953232462173315,
+        "Apple___healthy": 0.022181146025878003,
+        "Corn_(maize)___healthy": 0.41421319796954315,
+        "Grape___Black_rot": 0.2739432851792402,
+        "Grape___Esca_(Black_Measles)": 0.3235294117647059,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.08775137111517367,
+        "Grape___healthy": 0.05435385468663339,
+        "Potato___healthy": 0.4359861591695502,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.11764705882352941,
+        "Tomato___Late_blight": 0.04111466423024212,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.4945382323733863,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.03333333333333333
+      },
+      "pred_dist_top": [
+        [
+          "Tomato___Late_blight",
+          2066
+        ],
+        [
+          "Grape___Black_rot",
+          1061
+        ],
+        [
+          "Corn_(maize)___healthy",
+          781
+        ],
+        [
+          "Grape___healthy",
+          694
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          472
+        ],
+        [
+          "Potato___Early_blight",
+          426
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          422
+        ],
+        [
+          "Apple___Apple_scab",
+          331
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Tomato___Late_blight",
+          626
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Late_blight",
+          367
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Tomato___Late_blight",
+          233
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Black_rot",
+          226
+        ],
+        [
+          "Tomato___healthy",
+          "Grape___healthy",
+          222
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Late_blight",
+          216
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Grape___Black_rot",
+          213
+        ],
+        [
+          "Apple___healthy",
+          "Grape___healthy",
+          210
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          201
+        ],
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          188
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Late_blight",
+          160
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Grape___Black_rot",
+          158
+        ]
+      ],
+      "epoch": 1
+    },
+    "epoch2": {
+      "accuracy": 0.1579092159559835,
+      "macro_f1_present": 0.15917598122279691,
+      "acc_disease": 0.18810222036028487,
+      "acc_healthy": 0.10016025641025642,
+      "per_dataset": {
+        "gvlid": 0.11101524302559677,
+        "multicrop": 0.25204274041483343,
+        "plantpathology": 0.14971098265895955,
+        "tomatoleaf": 0.21610169491525424
+      },
+      "mean_conf_correct": 0.45187538862228394,
+      "mean_conf_wrong": 0.3347368538379669,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.5030826140567201,
+        "Apple___Cedar_apple_rust": 0.14605067064083457,
+        "Apple___healthy": 0.022988505747126436,
+        "Corn_(maize)___healthy": 0.49514563106796117,
+        "Grape___Black_rot": 0.06124401913875598,
+        "Grape___Esca_(Black_Measles)": 0.43465703971119135,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.10965435041716329,
+        "Grape___healthy": 0.010638297872340425,
+        "Potato___healthy": 0.2796610169491525,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.10762331838565023,
+        "Tomato___Late_blight": 0.032974001268230815,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.34309623430962344,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.0
+      },
+      "pred_dist_top": [
+        [
+          "Tomato___Late_blight",
+          4608
+        ],
+        [
+          "Corn_(maize)___healthy",
+          620
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          497
+        ],
+        [
+          "Grape___Black_rot",
+          237
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          236
+        ],
+        [
+          "Apple___Apple_scab",
+          219
+        ],
+        [
+          "Grape___healthy",
+          207
+        ],
+        [
+          "Tomato___Early_blight",
+          169
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Tomato___Late_blight",
+          993
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Late_blight",
+          656
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Late_blight",
+          493
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Tomato___Late_blight",
+          480
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Late_blight",
+          395
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Tomato___Late_blight",
+          337
+        ],
+        [
+          "Apple___Apple_scab",
+          "Tomato___Late_blight",
+          317
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Tomato___Late_blight",
+          312
+        ],
+        [
+          "Tomato___Early_blight",
+          "Tomato___Late_blight",
+          229
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          215
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Esca_(Black_Measles)",
+          176
+        ],
+        [
+          "Apple___healthy",
+          "Tomato___Late_blight",
+          169
+        ]
+      ],
+      "epoch": 2
+    },
+    "epoch3": {
+      "accuracy": 0.30563961485557084,
+      "macro_f1_present": 0.26907493391054005,
+      "acc_disease": 0.3908671973188102,
+      "acc_healthy": 0.14262820512820512,
+      "per_dataset": {
+        "gvlid": 0.2473396606269773,
+        "multicrop": 0.40917661847894404,
+        "plantpathology": 0.34104046242774566,
+        "tomatoleaf": 0.2563559322033898
+      },
+      "mean_conf_correct": 0.49381023645401,
+      "mean_conf_wrong": 0.30324989557266235,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.7482859941234085,
+        "Apple___Cedar_apple_rust": 0.30423280423280424,
+        "Apple___healthy": 0.29017160686427457,
+        "Corn_(maize)___healthy": 0.7298747763864043,
+        "Grape___Black_rot": 0.12343297974927676,
+        "Grape___Esca_(Black_Measles)": 0.5540661304736372,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.15087719298245614,
+        "Grape___healthy": 0.0050568900126422255,
+        "Potato___healthy": 0.3313253012048193,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.37454545454545457,
+        "Tomato___Late_blight": 0.0851063829787234,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.6082234290147401,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.0
+      },
+      "pred_dist_top": [
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          1608
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          1350
+        ],
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          815
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          569
+        ],
+        [
+          "Grape___healthy",
+          473
+        ],
+        [
+          "Apple___Apple_scab",
+          429
+        ],
+        [
+          "Corn_(maize)___healthy",
+          355
+        ],
+        [
+          "Tomato___Late_blight",
+          300
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          839
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Esca_(Black_Measles)",
+          348
+        ],
+        [
+          "Grape___Black_rot",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          328
+        ],
+        [
+          "Tomato___healthy",
+          "Grape___healthy",
+          184
+        ],
+        [
+          "Grape___Black_rot",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          160
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          152
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          151
+        ],
+        [
+          "Apple___healthy",
+          "Grape___healthy",
+          138
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Leaf_Mold",
+          119
+        ],
+        [
+          "Grape___Black_rot",
+          "Grape___Esca_(Black_Measles)",
+          104
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          92
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Leaf_Mold",
+          90
+        ]
+      ],
+      "epoch": 3
+    },
+    "epoch4": {
+      "accuracy": 0.22475928473177442,
+      "macro_f1_present": 0.16425536375624056,
+      "acc_disease": 0.2880184331797235,
+      "acc_healthy": 0.10376602564102565,
+      "per_dataset": {
+        "gvlid": 0.27121081392004603,
+        "multicrop": 0.2941546197360151,
+        "plantpathology": 0.08497109826589595,
+        "tomatoleaf": 0.16101694915254236
+      },
+      "mean_conf_correct": 0.5265576839447021,
+      "mean_conf_wrong": 0.492946594953537,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.23019431988041852,
+        "Apple___Cedar_apple_rust": 0.10510510510510511,
+        "Apple___healthy": 0.11925042589437819,
+        "Corn_(maize)___healthy": 0.2161874334398296,
+        "Grape___Black_rot": 0.42857142857142855,
+        "Grape___Esca_(Black_Measles)": 0.6346504559270517,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.12268518518518519,
+        "Grape___healthy": 0.00528169014084507,
+        "Potato___healthy": 0.16289592760180996,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.06766917293233082,
+        "Tomato___Late_blight": 0.07304785894206549,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.46254681647940077,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.0
+      },
+      "pred_dist_top": [
+        [
+          "Corn_(maize)___healthy",
+          1674
+        ],
+        [
+          "Tomato___Late_blight",
+          1465
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          1056
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          757
+        ],
+        [
+          "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+          692
+        ],
+        [
+          "Grape___Black_rot",
+          648
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          348
+        ],
+        [
+          "Tomato___Early_blight",
+          255
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          765
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___healthy",
+          488
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          434
+        ],
+        [
+          "Apple___Apple_scab",
+          "Corn_(maize)___healthy",
+          229
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+          226
+        ],
+        [
+          "Grape___healthy",
+          "Tomato___Late_blight",
+          218
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Late_blight",
+          216
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Esca_(Black_Measles)",
+          206
+        ],
+        [
+          "Tomato___Early_blight",
+          "Tomato___Late_blight",
+          197
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Late_blight",
+          190
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Late_blight",
+          171
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Black_rot",
+          168
+        ]
+      ],
+      "epoch": 4
+    },
+    "epoch5": {
+      "accuracy": 0.24236588720770288,
+      "macro_f1_present": 0.19966908878572776,
+      "acc_disease": 0.30184331797235026,
+      "acc_healthy": 0.12860576923076922,
+      "per_dataset": {
+        "gvlid": 0.18809318377911993,
+        "multicrop": 0.3796354494028913,
+        "plantpathology": 0.23930635838150288,
+        "tomatoleaf": 0.1906779661016949
+      },
+      "mean_conf_correct": 0.6296128034591675,
+      "mean_conf_wrong": 0.4004115164279938,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.6651982378854625,
+        "Apple___Cedar_apple_rust": 0.11816838995568685,
+        "Apple___healthy": 0.21428571428571427,
+        "Corn_(maize)___healthy": 0.3559928443649374,
+        "Grape___Black_rot": 0.08771929824561403,
+        "Grape___Esca_(Black_Measles)": 0.6305908337934842,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.0673076923076923,
+        "Grape___healthy": 0.0015600624024961,
+        "Potato___healthy": 0.3471698113207547,
+        "Tomato___Bacterial_spot": 0.004987531172069825,
+        "Tomato___Early_blight": 0.16338028169014085,
+        "Tomato___Late_blight": 0.06282722513089005,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.46293888166449937,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.012578616352201259
+      },
+      "pred_dist_top": [
+        [
+          "Grape___Esca_(Black_Measles)",
+          923
+        ],
+        [
+          "Corn_(maize)___healthy",
+          914
+        ],
+        [
+          "Tomato___Late_blight",
+          832
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          818
+        ],
+        [
+          "Tomato___Bacterial_spot",
+          793
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          576
+        ],
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          502
+        ],
+        [
+          "Tomato___Early_blight",
+          433
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          447
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Esca_(Black_Measles)",
+          254
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          244
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___healthy",
+          225
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Septoria_leaf_spot",
+          200
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Bacterial_spot",
+          184
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Late_blight",
+          152
+        ],
+        [
+          "Grape___Black_rot",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          152
+        ],
+        [
+          "Grape___healthy",
+          "Tomato___Late_blight",
+          137
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          133
+        ],
+        [
+          "Grape___healthy",
+          "Tomato___Early_blight",
+          130
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Late_blight",
+          125
+        ]
+      ],
+      "epoch": 5
+    },
+    "epoch6": {
+      "accuracy": 0.21004126547455296,
+      "macro_f1_present": 0.207591348764448,
+      "acc_disease": 0.2505236698785086,
+      "acc_healthy": 0.1326121794871795,
+      "per_dataset": {
+        "gvlid": 0.13373597929249353,
+        "multicrop": 0.32558139534883723,
+        "plantpathology": 0.23815028901734103,
+        "tomatoleaf": 0.2796610169491525
+      },
+      "mean_conf_correct": 0.6888120770454407,
+      "mean_conf_wrong": 0.5379671454429626,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.6186252771618626,
+        "Apple___Cedar_apple_rust": 0.01910828025477707,
+        "Apple___healthy": 0.36337625178826893,
+        "Corn_(maize)___healthy": 0.608,
+        "Grape___Black_rot": 0.29357798165137616,
+        "Grape___Esca_(Black_Measles)": 0.4015384615384615,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.02916160388821385,
+        "Grape___healthy": 0.0,
+        "Potato___healthy": 0.11926605504587157,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.2745762711864407,
+        "Tomato___Late_blight": 0.035196687370600416,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.5547703180212014,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.0042643923240938165
+      },
+      "pred_dist_top": [
+        [
+          "Tomato___Late_blight",
+          2775
+        ],
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          1343
+        ],
+        [
+          "Grape___Black_rot",
+          500
+        ],
+        [
+          "Corn_(maize)___healthy",
+          421
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          412
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          412
+        ],
+        [
+          "Tomato___Early_blight",
+          313
+        ],
+        [
+          "Apple___Apple_scab",
+          310
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Tomato___Late_blight",
+          555
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Late_blight",
+          400
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          396
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Late_blight",
+          359
+        ],
+        [
+          "Grape___healthy",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          280
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Tomato___Late_blight",
+          268
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Late_blight",
+          249
+        ],
+        [
+          "Apple___healthy",
+          "Tomato___Late_blight",
+          244
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          208
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          194
+        ],
+        [
+          "Apple___Apple_scab",
+          "Tomato___Late_blight",
+          168
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Tomato___Late_blight",
+          154
+        ]
+      ],
+      "epoch": 6
+    },
+    "epoch7": {
+      "accuracy": 0.19738651994497936,
+      "macro_f1_present": 0.16177117910760005,
+      "acc_disease": 0.24633431085043989,
+      "acc_healthy": 0.10376602564102565,
+      "per_dataset": {
+        "gvlid": 0.18694276675294794,
+        "multicrop": 0.2338152105593966,
+        "plantpathology": 0.11271676300578035,
+        "tomatoleaf": 0.461864406779661
+      },
+      "mean_conf_correct": 0.6726987957954407,
+      "mean_conf_wrong": 0.5285681486129761,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.3471295060080107,
+        "Apple___Cedar_apple_rust": 0.047021943573667714,
+        "Apple___healthy": 0.16722408026755853,
+        "Corn_(maize)___healthy": 0.3902932254802831,
+        "Grape___Black_rot": 0.26705370101596515,
+        "Grape___Esca_(Black_Measles)": 0.47393364928909953,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.0901023890784983,
+        "Grape___healthy": 0.0,
+        "Potato___healthy": 0.14222222222222222,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.2585987261146497,
+        "Tomato___Late_blight": 0.05758157389635317,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.34717784877529284,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.0
+      },
+      "pred_dist_top": [
+        [
+          "Tomato___Early_blight",
+          1293
+        ],
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          927
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          800
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          793
+        ],
+        [
+          "Corn_(maize)___healthy",
+          785
+        ],
+        [
+          "Grape___Black_rot",
+          570
+        ],
+        [
+          "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+          533
+        ],
+        [
+          "Tomato___Late_blight",
+          398
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          564
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          266
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          235
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Esca_(Black_Measles)",
+          222
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___healthy",
+          214
+        ],
+        [
+          "Apple___Apple_scab",
+          "Tomato___Early_blight",
+          209
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+          191
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Leaf_Mold",
+          179
+        ],
+        [
+          "Grape___healthy",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          178
+        ],
+        [
+          "Grape___healthy",
+          "Tomato___Early_blight",
+          168
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Leaf_Mold",
+          168
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Late_blight",
+          139
+        ]
+      ],
+      "epoch": 7
+    },
+    "epoch8": {
+      "accuracy": 0.2248968363136176,
+      "macro_f1_present": 0.1991241959648486,
+      "acc_disease": 0.2607875994972769,
+      "acc_healthy": 0.15625,
+      "per_dataset": {
+        "gvlid": 0.09318377911993098,
+        "multicrop": 0.4776869893148963,
+        "plantpathology": 0.26184971098265897,
+        "tomatoleaf": 0.2076271186440678
+      },
+      "mean_conf_correct": 0.705685555934906,
+      "mean_conf_wrong": 0.5313371419906616,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.6166495375128469,
+        "Apple___Cedar_apple_rust": 0.10930576070901034,
+        "Apple___healthy": 0.24293193717277486,
+        "Corn_(maize)___healthy": 0.26052631578947366,
+        "Grape___Black_rot": 0.19063829787234043,
+        "Grape___Esca_(Black_Measles)": 0.2712721145745577,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.10764262648008611,
+        "Grape___healthy": 0.001669449081803005,
+        "Potato___healthy": 0.2066115702479339,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.31499051233396586,
+        "Tomato___Late_blight": 0.07853403141361257,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.5986478180700676,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.1865671641791045
+      },
+      "pred_dist_top": [
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          1685
+        ],
+        [
+          "Corn_(maize)___healthy",
+          1316
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          907
+        ],
+        [
+          "Potato___Early_blight",
+          700
+        ],
+        [
+          "Apple___healthy",
+          439
+        ],
+        [
+          "Apple___Apple_scab",
+          381
+        ],
+        [
+          "Grape___Black_rot",
+          367
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          299
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          512
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___healthy",
+          382
+        ],
+        [
+          "Grape___healthy",
+          "Potato___Early_blight",
+          366
+        ],
+        [
+          "Grape___Black_rot",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          345
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          288
+        ],
+        [
+          "Grape___healthy",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          265
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          236
+        ],
+        [
+          "Grape___healthy",
+          "Corn_(maize)___healthy",
+          235
+        ],
+        [
+          "Tomato___healthy",
+          "Apple___healthy",
+          199
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Septoria_leaf_spot",
+          136
+        ],
+        [
+          "Grape___Black_rot",
+          "Potato___Early_blight",
+          127
+        ],
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          115
+        ]
+      ],
+      "epoch": 8
+    },
+    "epoch9": {
+      "accuracy": 0.24099037138927099,
+      "macro_f1_present": 0.21531802676591139,
+      "acc_disease": 0.3095936321742773,
+      "acc_healthy": 0.10977564102564102,
+      "per_dataset": {
+        "gvlid": 0.23238423928674146,
+        "multicrop": 0.2055311125078567,
+        "plantpathology": 0.27109826589595376,
+        "tomatoleaf": 0.3135593220338983
+      },
+      "mean_conf_correct": 0.687976598739624,
+      "mean_conf_wrong": 0.5709306001663208,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.6313645621181263,
+        "Apple___Cedar_apple_rust": 0.2787550744248985,
+        "Apple___healthy": 0.18451400329489293,
+        "Corn_(maize)___healthy": 0.4910941475826972,
+        "Grape___Black_rot": 0.2644628099173554,
+        "Grape___Esca_(Black_Measles)": 0.5116279069767442,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.20012507817385866,
+        "Grape___healthy": 0.0,
+        "Potato___healthy": 0.18018018018018017,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.37478108581436076,
+        "Tomato___Late_blight": 0.05121798875702686,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.25586854460093894,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.02109704641350211
+      },
+      "pred_dist_top": [
+        [
+          "Tomato___Late_blight",
+          1478
+        ],
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          990
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          927
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          832
+        ],
+        [
+          "Grape___Black_rot",
+          765
+        ],
+        [
+          "Corn_(maize)___healthy",
+          582
+        ],
+        [
+          "Apple___Apple_scab",
+          390
+        ],
+        [
+          "Potato___Early_blight",
+          330
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          533
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Late_blight",
+          377
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Late_blight",
+          348
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Esca_(Black_Measles)",
+          234
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          222
+        ],
+        [
+          "Grape___healthy",
+          "Potato___Early_blight",
+          188
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          175
+        ],
+        [
+          "Grape___Black_rot",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          168
+        ],
+        [
+          "Grape___healthy",
+          "Tomato___Late_blight",
+          163
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___healthy",
+          159
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          157
+        ],
+        [
+          "Grape___healthy",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          128
+        ]
+      ],
+      "epoch": 9
+    },
+    "epoch10": {
+      "accuracy": 0.15392022008253095,
+      "macro_f1_present": 0.13576496984939246,
+      "acc_disease": 0.16673648931713447,
+      "acc_healthy": 0.1294070512820513,
+      "per_dataset": {
+        "gvlid": 0.14811619211964336,
+        "multicrop": 0.21935889377749843,
+        "plantpathology": 0.10867052023121387,
+        "tomatoleaf": 0.1419491525423729
+      },
+      "mean_conf_correct": 0.6154286861419678,
+      "mean_conf_wrong": 0.5330942869186401,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.25985401459854013,
+        "Apple___Cedar_apple_rust": 0.07621951219512195,
+        "Apple___healthy": 0.2024623803009576,
+        "Corn_(maize)___healthy": 0.2503128911138924,
+        "Grape___Black_rot": 0.07048458149779736,
+        "Grape___Esca_(Black_Measles)": 0.3147377185678601,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.25478841870824054,
+        "Grape___healthy": 0.0,
+        "Potato___healthy": 0.3474903474903475,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.08403361344537816,
+        "Tomato___Late_blight": 0.06231276213301378,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.23255813953488372,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.016985138004246284
+      },
+      "pred_dist_top": [
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          1573
+        ],
+        [
+          "Tomato___Late_blight",
+          1546
+        ],
+        [
+          "Corn_(maize)___healthy",
+          1394
+        ],
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          655
+        ],
+        [
+          "Grape___Black_rot",
+          327
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          313
+        ],
+        [
+          "Potato___Early_blight",
+          233
+        ],
+        [
+          "Apple___healthy",
+          215
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          606
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___healthy",
+          425
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___healthy",
+          334
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Late_blight",
+          314
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          294
+        ],
+        [
+          "Grape___healthy",
+          "Tomato___Late_blight",
+          237
+        ],
+        [
+          "Grape___Black_rot",
+          "Tomato___Late_blight",
+          232
+        ],
+        [
+          "Grape___Black_rot",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          225
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          206
+        ],
+        [
+          "Apple___Apple_scab",
+          "Corn_(maize)___healthy",
+          152
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Late_blight",
+          150
+        ],
+        [
+          "Apple___Apple_scab",
+          "Tomato___Late_blight",
+          147
+        ]
+      ],
+      "epoch": 10
+    },
+    "model_best": {
+      "accuracy": 0.23837689133425036,
+      "macro_f1_present": 0.2345793886449748,
+      "acc_disease": 0.29136992040217846,
+      "acc_healthy": 0.13701923076923078,
+      "per_dataset": {
+        "gvlid": 0.1452401495542134,
+        "multicrop": 0.3368950345694532,
+        "plantpathology": 0.33410404624277457,
+        "tomatoleaf": 0.24152542372881355
+      },
+      "mean_conf_correct": 0.7928683161735535,
+      "mean_conf_wrong": 0.7077151536941528,
+      "per_class_f1": {
+        "Apple___Apple_scab": 0.6716259298618491,
+        "Apple___Cedar_apple_rust": 0.3139240506329114,
+        "Apple___healthy": 0.3760217983651226,
+        "Corn_(maize)___healthy": 0.6858168761220825,
+        "Grape___Black_rot": 0.13395348837209303,
+        "Grape___Esca_(Black_Measles)": 0.4314199395770393,
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 0.11275964391691394,
+        "Grape___healthy": 0.0,
+        "Potato___healthy": 0.11267605633802817,
+        "Tomato___Bacterial_spot": 0.0,
+        "Tomato___Early_blight": 0.2518518518518518,
+        "Tomato___Late_blight": 0.12608695652173912,
+        "Tomato___Leaf_Mold": 0.0,
+        "Tomato___Septoria_leaf_spot": 0.5329052969502408,
+        "Tomato___Target_Spot": 0.0,
+        "Tomato___healthy": 0.004228329809725159
+      },
+      "pred_dist_top": [
+        [
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          2318
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          767
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          676
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          526
+        ],
+        [
+          "Tomato___Early_blight",
+          398
+        ],
+        [
+          "Corn_(maize)___healthy",
+          353
+        ],
+        [
+          "Apple___Apple_scab",
+          349
+        ],
+        [
+          "Tomato___Late_blight",
+          337
+        ]
+      ],
+      "top_confusions": [
+        [
+          "Grape___healthy",
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          466
+        ],
+        [
+          "Grape___Esca_(Black_Measles)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          460
+        ],
+        [
+          "Grape___healthy",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          372
+        ],
+        [
+          "Grape___Black_rot",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          368
+        ],
+        [
+          "Apple___Cedar_apple_rust",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          327
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Grape___Esca_(Black_Measles)",
+          250
+        ],
+        [
+          "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          224
+        ],
+        [
+          "Tomato___Septoria_leaf_spot",
+          "Tomato___Leaf_Mold",
+          201
+        ],
+        [
+          "Tomato___healthy",
+          "Grape___healthy",
+          177
+        ],
+        [
+          "Apple___healthy",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          171
+        ],
+        [
+          "Apple___Apple_scab",
+          "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+          146
+        ],
+        [
+          "Tomato___healthy",
+          "Tomato___Leaf_Mold",
+          132
+        ]
+      ],
+      "epoch": 30
+    }
+  }
+}

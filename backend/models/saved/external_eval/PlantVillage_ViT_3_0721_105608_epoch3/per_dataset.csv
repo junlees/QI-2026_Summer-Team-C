@@ -1,0 +1,5 @@
+dataset,n,accuracy
+gvlid,3477,0.2473
+multicrop,1591,0.4092
+plantpathology,1730,0.3410
+tomatoleaf,472,0.2564

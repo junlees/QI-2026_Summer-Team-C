@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-PlantVillage 38개 작물–질병 클래스 이미지 분류. ImageNet 사전학습 **GoogLeNet(InceptionV1)** 을 fine-tuning하며, Mohanty et al. 2016 "Using Deep Learning for Image-Based Plant Disease Detection"의 GoogLeNet transfer-learning 실험(Caffe solver 스펙: SGD, base lr 0.005, StepLR step 10/gamma 0.1, momentum 0.9, weight decay 0.0005, batch 24, 30 epoch)을 재현한다. 구조는 [victoresque/pytorch-template](https://github.com/victoresque/pytorch-template)을 이식했다.
+PlantVillage 38개 작물–질병 클래스 이미지 분류. ImageNet 사전학습 **GoogLeNet(InceptionV1)** 을 fine-tuning하며, Mohanty et al. 2016 "Using Deep Learning for Image-Based Plant Disease Detection"의 GoogLeNet transfer-learning 실험(Caffe solver 스펙: SGD, base lr 0.005, StepLR step 10/gamma 0.1, momentum 0.9, weight decay 0.0005, batch 24, 30 epoch)을 재현한다. 이후 5작물 25클래스·17클래스 서브셋과 ViT-B/16 fine-tuning 변종으로 확장했다(config3/4·config_vit3/4, prepared3/4/5). 구조는 [victoresque/pytorch-template](https://github.com/victoresque/pytorch-template)을 이식했다.
 
 ## 환경 (필수)
 
@@ -21,19 +21,28 @@ PY=/home/kntst/anaconda3/envs/env1/bin/python   # torch 2.9.1+cu128, torchvision
 
 ```bash
 # 학습 (config.json이 모든 하이퍼파라미터 제어). train은 사용자가 직접 실행.
-"$PY" train.py -c config.json
-"$PY" train.py -c config_vit3.json   # 25클래스 ViT-B/16 fine-tuning
+"$PY" train.py -c config.json                    # prepared2 38클래스 GoogLeNet
+"$PY" train.py -c config3.json                   # prepared3 25클래스 GoogLeNet
+"$PY" train.py -c config_vit3.json               # prepared3 25클래스 ViT-B/16 fine-tuning
+"$PY" train.py -c config4.json                   # prepared4 25클래스 GoogLeNet (증강 완화·epochs 10)
+"$PY" train.py -c config_vit4.json               # prepared4 25클래스 ViT-B/16 (증강 완화·epochs 10)
 "$PY" train.py -c config.json -r saved/models/<name>/<run>/checkpoint-epochN.pth   # 재개
 "$PY" train.py -c config.json --lr 0.005 --bs 32                                    # CLI 오버라이드
 
 # 최종 평가 (test/ 폴더 전체셋 → Accuracy, Mean F1(macro), per-class F1, classification_report)
 "$PY" test.py -r saved/models/<name>/<run>/model_best.pth   # -r만 줘도 옆의 config.json 자동 로드
 
+# 추론 (predict.py: PlantVillage식 잎사진 직접 분류 / predict_leaf.py: 실사진→잎 검출→중앙 잎 크롭 256×256→분류)
+"$PY" predict.py <image ...> -r saved/models/<name>/<run>/model_best.pth [-k 5]
+"$PY" predict_leaf.py <image ...> -r saved/models/<name>/<run>/model_best.pth [--method auto] [--save-crop] [--debug]
+
 # TensorBoard (loss/val_accuracy/val_macro_f1/lr 곡선)
 "$PY" -m tensorboard.main --logdir saved/log
 
-# 데이터 준비 (원본 → stratified 7:2:1 분할 + train 균형 증강)
-"$PY" dataset/prepare_split.py
+# 데이터 준비 (스크립트별 분할·증강 상세는 dataset.md §5)
+"$PY" dataset/prepare_split2.py   # raw/color → prepared2 (잎그룹 7:1.5:1.5 누수방지·강한 증강, config.json이 사용)
+#   prepare_split3/4/5.py → prepared3(25) / prepared4(25, 증강 완화) / prepared5(17)
+"$PY" dataset/prepare_split.py    # (구버전) raw/color → prepared, 이미지단위 7:2:1, 누수 있음
 
 # 라벨 CSV 재생성
 "$PY" dataset/generate_labels.py
@@ -54,7 +63,7 @@ PY=/home/kntst/anaconda3/envs/env1/bin/python   # torch 2.9.1+cu128, torchvision
 
 ## ViT-B/16 fine-tuning 설정
 
-`config_vit3.json`은 ImageNet 사전학습 ViT-B/16 전체 계층을 `prepared3` 25클래스에 fine-tuning한다.
+`config_vit3.json`은 ImageNet 사전학습 ViT-B/16 전체 계층을 `prepared3` 25클래스에 fine-tuning한다. `config_vit4.json`은 동일 설정을 `prepared4`(증강 완화판 25클래스)에 **epochs 10**으로 돌리는 증강 A/B 비교용이다(아래 하이퍼파라미터는 config_vit3 기준, epoch만 다름).
 
 - batch 64, AdamW(lr `1e-4`, weight decay `0.05`), 30 epoch
 - 3 epoch linear warmup(`1e-5` → `1e-4`) 후 cosine decay(`1e-6`까지)
@@ -64,7 +73,7 @@ PY=/home/kntst/anaconda3/envs/env1/bin/python   # torch 2.9.1+cu128, torchvision
 
 ## GoogLeNet 특유의 함정 (핵심)
 
-`model/model.py`의 `GoogLeNetPlant`는 `aux_logits=True`로 로드해야 loss1/loss2/loss3 분류기(`aux1.fc2`, `aux2.fc2`, `fc`)가 존재하며, 이 3개를 38출력으로 교체한다.
+`model/model.py`의 `GoogLeNetPlant`는 `aux_logits=True`로 로드해야 loss1/loss2/loss3 분류기(`aux1.fc2`, `aux2.fc2`, `fc`)가 존재하며, 이 3개를 `num_classes` 출력으로 교체한다(config에 따라 38/25/17 — 하드코딩된 38은 `__init__` 기본값뿐이고 in_features는 기존 레이어에서 동적으로 읽는다). ViT는 `heads.head` 단일 헤드만 교체한다.
 
 - **train()은 `GoogLeNetOutputs` namedtuple(logits, aux_logits2, aux_logits1), eval()은 `Tensor`를 반환한다.** `model/loss.py`·`model/metric.py`는 `torch.is_tensor()`로 두 경우를 분기한다 — 이 분기를 빠뜨리면 학습에서 크래시한다.
 - 손실은 `cross_entropy`(raw logits용). 템플릿 기본 `nll_loss`가 아니다. 결합식: `loss3 + 0.3*(loss1 + loss2)`.
@@ -77,58 +86,22 @@ PY=/home/kntst/anaconda3/envs/env1/bin/python   # torch 2.9.1+cu128, torchvision
 
 ## 데이터셋 & 준비 워크플로우
 
-`dataset/` 아래에 여러 소스가 공존한다:
-- `PlantVillage-Dataset/raw/color/` — **원본** 54,305장(38클래스, 256×256). 클래스 불균형 심함(152~5,507장, 36배). `raw/segmented/`(배경 제거)와 `leaf_grouping/`(잎 그룹)도 있음.
-- `plantvillage_prepared/` — **현재 config가 사용**. `dataset/prepare_split.py`가 생성.
-- `New Plant Diseases Dataset(Augmented)/` — 외부 증강본(train/valid만). 회전·반전 위주로 증강 + 클래스 균등화됨. 증강 후 분할이라 **train/valid 누수 가능성**이 있어 valid 평가가 낙관적.
-- `test_different_condition/` — 촬영 조건이 다른 33장(도메인 시프트 데모, 성능 급락).
+**데이터셋 인벤토리·분할·증강·config 매핑의 정본은 `dataset.md`**(모든 prepared 버전, 원본/소스, 외부 교차도메인 §3, 스크립트 §5, config↔dataset 매핑 §6). 여기서는 학습에 직결되는 원칙만 요약하고 상세는 dataset.md를 본다.
 
-**`prepare_split.py`의 원칙 (누수 방지):** 원본을 **먼저** stratified 7:2:1로 나눈 뒤 **train만** 클래스당 1,000장으로 균형화(초과 클래스 랜덤 다운샘플 / 미달 클래스 증강으로 채움). valid/test는 원본 그대로 두어 실제 분포를 유지하고 **macro F1**으로 공정 평가한다. 증강은 라벨 보존형(직각 회전 + 좌우/상하 반전 + 약한 밝기/대비만; **색조는 병징 진단정보라 건드리지 않음**). seed 42 고정.
+- **현재 config가 쓰는 준비셋**: `config.json`→`plantvillage_prepared2`(38클래스), `config3.json`/`config_vit3.json`→`prepared3`(25), `config4.json`/`config_vit4.json`→`prepared4`(25). 구 `plantvillage_prepared`(이미지 단위 분할)는 **누수가 있어 미연결**이며, `prepared5`(17)는 아직 전용 config가 없다.
+- **누수 방지 원칙**: prepared2 이후는 `leaf-map.json`으로 **물리적 잎 단위 그룹**을 만들어 한 잎의 모든 크롭이 한 split에만 들어가게 분할한다(prepared2/3은 7:1.5:1.5, prepared5는 7:2:1). 이미지 단위(구 `prepare_split.py`)로 나누면 같은 잎의 여러 각도 크롭이 train/valid/test에 흩어져 누수된다.
+- **균형화·평가**: train만 클래스당 균형화(prepared2/3/4는 1,000장, prepared5는 1,400장; 초과 다운샘플/미달 증강), valid/test는 원본 분포를 유지해 **macro F1**으로 공정 평가한다. seed 42 고정.
+- **증강**: prepared2/3은 강한 Keras식 7종(회전·플립·shift·shear·zoom·밝기·channel shift), prepared4/5는 완화판(channel shift·shear 제거, 밝기 ±10%). **색조는 병징 진단정보라 건드리지 않는다.**
 
-## PlantDoc 교차 평가 & 라벨 매핑 (도메인 시프트)
+## 외부 교차도메인 평가 (도메인 시프트)
 
-`test_plantdoc.py`가 PlantVillage 학습 모델을 **PlantDoc 세그먼테이션 크롭**(`dataset/plantdoc_leaf_crops/`, bbox로 잘라낸 실사진 잎, `manifest.csv`에 crop_path·pd_class 등)에 교차 평가한다. PlantDoc은 웹수집 실사진이라 어떤 PV 학습셋에도 없어 **누수 없는 순수 도메인 시프트** 평가다. 결과는 `saved/plantdoc_eval/<name>_<run>/`(metrics.json, per_class.csv, confusion.csv/png, classification_report.txt).
+`test_external.py`가 PlantVillage 학습 모델을 **촬영 조건이 다른 외부 실사진 데이터셋**(PlantPathology / GVLiD 포도 / TomatoLeafMulticlass / Multi-Crop)에 교차 평가한다. 외부 데이터는 어떤 PV 학습셋에도 없어 **누수 없는 순수 도메인 시프트** 평가다. (이전의 PlantDoc 교차평가를 대체 — PlantDoc은 라벨 품질이 낮아 제거함.)
 
-25클래스 같은 서브셋 모델에서는 매핑된 PV 클래스 중 모델 출력에 포함된 클래스만 평가하고 나머지는 `not_in_model:*` 사유로 제외한다.
-
-- 실행: `"$PY" test_plantdoc.py -r saved/models/<name>/<run>/model_best.pth [--split all|train|test]`
-- **함정:** GoogLeNet/Inception은 사전학습 로드 시 `transform_input=True`가 켜진 채 학습된다. 추론용으로 `pretrained=False`로 빌드하면 이 값이 꺼지고 `load_state_dict`로 복원되지 않아 입력 분포가 어긋난다(예측이 한 클래스로 붕괴). 빌드 후 `model.backbone.transform_input = True`를 명시할 것(`test_plantdoc.py`·`predict.py`에 반영됨). `test.py`는 config의 `pretrained:true`로 빌드해 안전.
-- 결과 요약: 도메인 내 ~99% → PlantDoc ~16%로 붕괴. 예측 대량이 `Corn_(maize)___healthy`(초록잎 흡인)로 쏠림. 살아남는 건 배경독립 텍스처(Squash 흰가루병 등). 누수방지(prepared2) 모델이 근소하게 가장 잘 일반화.
-
-**PlantDoc(28 pd_class) → PlantVillage(38클래스) 권위 매핑** (`test_plantdoc.py`의 `PD2PV` 딕트가 이 표를 그대로 구현). 품질 `weak` = 근사/가정 매핑(정확도 해석 주의). 표에 없는 바 `Potato leaf`(11장)는 평가 제외:
-
-| PD idx | PlantDoc 클래스 | PlantVillage 클래스 | PV idx | 품질 | 비고 |
-|---|---|---|---|---|---|
-| 0 | Apple Scab Leaf | Apple___Apple_scab | 0 | exact | |
-| 1 | Apple leaf | Apple___healthy | 3 | exact | 일반잎→건강 가정 |
-| 2 | Apple rust leaf | Apple___Cedar_apple_rust | 2 | exact | |
-| 3 | Bell_pepper leaf | Pepper,_bell___healthy | 19 | exact | 일반잎→건강 가정 |
-| 4 | Bell_pepper leaf spot | Pepper,_bell___Bacterial_spot | 18 | **weak** | leaf spot↔세균점무늬 근사 |
-| 5 | Blueberry leaf | Blueberry___healthy | 4 | exact | 일반잎→건강 가정 |
-| 6 | Cherry leaf | Cherry_(including_sour)___healthy | 6 | exact | 일반잎→건강 가정 |
-| 7 | Corn Gray leaf spot | Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot | 7 | exact | |
-| 8 | Corn leaf blight | Corn_(maize)___Northern_Leaf_Blight | 9 | exact | |
-| 9 | Corn rust leaf | Corn_(maize)___Common_rust_ | 8 | exact | |
-| 10 | Peach leaf | Peach___healthy | 17 | exact | 일반잎→건강 가정 |
-| 11 | Potato leaf early blight | Potato___Early_blight | 20 | exact | |
-| 12 | Potato leaf late blight | Potato___Late_blight | 21 | exact | |
-| 13 | Raspberry leaf | Raspberry___healthy | 23 | exact | 일반잎→건강 가정 |
-| 14 | Soyabean leaf | Soybean___healthy | 24 | **weak** | 철자 Soyabean→Soybean, 건강 가정 |
-| 15 | Squash Powdery mildew leaf | Squash___Powdery_mildew | 25 | exact | |
-| 16 | Strawberry leaf | Strawberry___healthy | 27 | **weak** | PV 딸기 병징은 Leaf_scorch뿐, 건강 가정 |
-| 17 | Tomato Early blight leaf | Tomato___Early_blight | 29 | exact | |
-| 18 | Tomato Septoria leaf spot | Tomato___Septoria_leaf_spot | 32 | exact | |
-| 19 | Tomato leaf | Tomato___healthy | 37 | exact | 일반잎→건강 가정 |
-| 20 | Tomato leaf bacterial spot | Tomato___Bacterial_spot | 28 | exact | |
-| 21 | Tomato leaf late blight | Tomato___Late_blight | 30 | exact | |
-| 22 | Tomato leaf mosaic virus | Tomato___Tomato_mosaic_virus | 36 | exact | |
-| 23 | Tomato leaf yellow virus | Tomato___Tomato_Yellow_Leaf_Curl_Virus | 35 | exact | |
-| 24 | Tomato mold leaf | Tomato___Leaf_Mold | 31 | exact | |
-| 25 | Tomato two spotted spider mites leaf | Tomato___Spider_mites Two-spotted_spider_mite | 33 | exact | test 0장(train만 2장) |
-| 26 | grape leaf | Grape___healthy | 14 | exact | 일반잎→건강 가정 |
-| 27 | grape leaf black rot | Grape___Black_rot | 11 | exact | |
-
-매핑은 **PV 38클래스 중 29개만** 커버한다. PlantDoc에 대응이 없는 **9개 PV 클래스**(평가 제외): `Apple___Black_rot`(1), `Cherry_(including_sour)___Powdery_mildew`(5), `Corn_(maize)___healthy`(10), `Grape___Esca_(Black_Measles)`(12), `Grape___Leaf_blight_(Isariopsis_Leaf_Spot)`(13), `Orange___Haunglongbing_(Citrus_greening)`(15), `Peach___Bacterial_spot`(16), `Strawberry___Leaf_scorch`(26), `Tomato___Target_Spot`(34). 이 중 `Corn_(maize)___healthy`는 GT엔 없지만 모델이 예측을 가장 많이 쏟아내는 sink다.
+- **매핑**: `dataset/external_test_mapping.csv`(`dataset, src_path, pv_class, quality`)가 외부 클래스 폴더를 PV 클래스에 **이름으로** 매칭한다. `test_external.py`는 체크포인트 config의 `data_dir/train`에서 모델의 클래스 목록을 읽어, 매핑된 PV 클래스 중 **모델에 존재하는 것만** 평가하고 나머지는 `not_in_model:*`로 제외한다 → **17/25/38클래스 모델 공용**(인덱스가 아니라 이름 기준이라 서브셋 모델에 자동 정렬).
+- **매핑 원칙**: PV에 1:1로 대응하는 **exact 매핑만** 채택. 복합병·PV에 없는 병/작물·모호한 라벨은 제외. 근사 매핑은 `quality=weak`로 등록하고 `--quality`로 필터(현재 CSV는 exact 16행, PV 25클래스 중 16개 커버·7,270장). 상세 표는 `dataset.md` §3.
+- **실행**: `"$PY" test_external.py -r saved/models/<name>/<run>/model_best.pth [--dataset gvlid] [--quality exact]`. 결과는 `saved/external_eval/<name>_<run>/`(metrics.json, per_class.csv, per_dataset.csv, confusion.csv/png, classification_report.txt).
+- **함정:** GoogLeNet/Inception은 사전학습 로드 시 `transform_input=True`가 켜진 채 학습된다. 추론용으로 `pretrained=False`로 빌드하면 이 값이 꺼지고 `load_state_dict`로 복원되지 않아 입력 분포가 어긋난다(예측이 한 클래스로 붕괴). `test_external.py`의 `build_model`이 빌드 후 `backbone.transform_input=True`를 명시한다(ViT는 이 속성이 없어 자동 무시). `test.py`는 config의 `pretrained:true`로 빌드해 안전.
+- 지표: 전체 accuracy, macro-F1(존재 클래스), per-class F1, **per-dataset accuracy**, 질병 vs healthy 정확도, 예측 분포(sink), 상위 혼동쌍, 평균 확신도(정답/오답).
 
 ## 규약 / 함정
 
