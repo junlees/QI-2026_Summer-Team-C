@@ -204,7 +204,9 @@ frontend/           Static HTML + Tailwind CSS, no JS framework.
   css/styles.css       Build output — gitignored, must be rebuilt.
   tailwind.config.js   Theme incl. traffic-light colors caution/danger.
   manifest.webmanifest / sw.js / js/pwa.js   PWA wiring (see below).
-  icons/               PWA icons.
+  icons/               PWA icons, generated from icons/icon.svg (the source
+                      of truth) via a one-off `sharp` script — regenerate
+                      rather than editing the PNGs by hand.
 render.yaml         Render deploy config: CPU torch install, npm build,
                     gunicorn start command, env vars (OPENAI_API_KEY is
                     sync:false; MODEL_CHECKPOINT_PATH/MODEL_CONFIG_PATH point
@@ -292,9 +294,10 @@ link, icon links, `apple-mobile-web-app-*` meta tags, and
 every HTML page plus `css/styles.css` and `js/store.js`; HTML *and* CSS/JS
 are all network-first (cache fallback only when offline) — deliberate, don't
 change it back to cache-first (it caused stale-CSS confusion during
-development). Only icons/manifest are cache-first. Bump `CACHE_NAME` when the
-*precache list* changes (a file added/removed/renamed). When adding a new
-HTML page, copy the exact PWA block from an existing page. Note: camera
+development). Only icons/manifest are cache-first. If you add, rename, or
+remove a precached file, update `PRECACHE_URLS` in `sw.js` and bump
+`CACHE_NAME` in the same file. When adding a new HTML page, copy the exact
+PWA block from an existing page. Note: camera
 capture (getUserMedia) requires a secure context — HTTPS or localhost.
 
 ## Structure is intentional — keep it
