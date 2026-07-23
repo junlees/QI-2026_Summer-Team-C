@@ -120,16 +120,8 @@ def diagnose(image_path, profile=None, user_input="", harvest_date=None):
     if kb_entry is None:
         raise ValueError(f"Unknown class_id from classifier: {class_id}")
 
-    if kb_entry.get("is_healthy"):
-        return {
-            "status": "healthy",
-            "class_id": class_id,
-            "confidence": confidence,
-            "crop": kb_entry["crop"],
-            "message": f"The {kb_entry['crop']} plant appears healthy.",
-            "leaf_detection": leaf_detection,
-        }
-
+    # Confidence gate comes FIRST — even a "healthy" call below the threshold
+    # must not reassure the user (see CLAUDE.md: <70 always yields uncertain).
     if confidence < CONFIDENCE_THRESHOLD:
         return {
             "status": "uncertain",
@@ -137,6 +129,16 @@ def diagnose(image_path, profile=None, user_input="", harvest_date=None):
             "confidence": confidence,
             "crop": kb_entry["crop"],
             "message": "Diagnosis confidence is too low to confirm a disease. Consulting an expert is recommended.",
+            "leaf_detection": leaf_detection,
+        }
+
+    if kb_entry.get("is_healthy"):
+        return {
+            "status": "healthy",
+            "class_id": class_id,
+            "confidence": confidence,
+            "crop": kb_entry["crop"],
+            "message": f"The {kb_entry['crop']} plant appears healthy.",
             "leaf_detection": leaf_detection,
         }
 

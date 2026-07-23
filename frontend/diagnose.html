@@ -58,8 +58,8 @@
       <img src="" alt="Selected leaf photo" class="hidden w-full h-[220px] object-cover rounded-[14px]" id="previewImg">
     </div>
 
-    <input type="file" class="hidden" id="galleryInput" accept="image/*">
-    <input type="file" class="hidden" id="cameraFallbackInput" accept="image/*" capture="environment">
+    <input type="file" class="hidden" id="galleryInput" accept="image/jpeg,image/png">
+    <input type="file" class="hidden" id="cameraFallbackInput" accept="image/jpeg,image/png" capture="environment">
 
     <div class="flex gap-[0.6rem] mt-[0.8rem]">
       <button type="button" class="flex-1 flex items-center justify-center gap-2 bg-accent text-white rounded-2xl py-3 text-[0.85rem] font-bold shadow-xs hover:bg-accent-dark transition-colors" id="takePhotoBtn">📸 Take photo</button>
@@ -82,7 +82,14 @@
       </div>
     </div>
 
+    <label class="block bg-card border border-border rounded-2xl px-4 py-[0.8rem] mt-[0.8rem]">
+      <span class="block text-[0.78rem] font-bold text-ink mb-[0.35rem]">Anything you noticed? <span class="text-muted font-medium">(optional — helps tailor the explanation)</span></span>
+      <textarea id="userNotes" rows="2" placeholder="e.g. Spots appeared 3 days ago after heavy rain" class="w-full resize-none bg-transparent text-[0.84rem] text-ink placeholder:text-muted focus:outline-none"></textarea>
+    </label>
+
     <button class="primary-btn mt-[1.1rem]" id="diagnoseBtn" disabled>Run AI Diagnosis</button>
+
+    <div class="hidden bg-danger-soft border border-[#f0c6c2] rounded-2xl px-4 py-[0.8rem] mt-[0.8rem] text-[0.82rem] text-danger font-bold" id="diagnoseError"></div>
 
     <div class="spinner" id="spinner">
       <div class="w-2 h-2 rounded-full bg-accent animate-dot-pulse"></div>
@@ -103,7 +110,7 @@
 
   const chip = document.getElementById("cropChip");
   chip.style.background = color;
-  chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${emoji}</span> Diagnosing ${crop}`;
+  chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${escapeHtml(emoji)}</span> Diagnosing ${escapeHtml(crop)}`;
 
   const uploadPlaceholder = document.getElementById("uploadPlaceholder");
   const previewImg = document.getElementById("previewImg");
@@ -117,17 +124,22 @@
   const shutterBtn = document.getElementById("shutterBtn");
   const cameraCancelBtn = document.getElementById("cameraCancelBtn");
   const diagnoseBtn = document.getElementById("diagnoseBtn");
+  const diagnoseError = document.getElementById("diagnoseError");
+  const userNotes = document.getElementById("userNotes");
   const spinner = document.getElementById("spinner");
-  let uploadedImage = null;
+  let uploadedImage = null;   // data URL for preview / result-page payload
+  let uploadedBlob = null;    // the actual bytes POSTed to /api/diagnose
   let cameraStream = null;
   let camRequest = 0;          // bumped by stopCamera; stale getUserMedia results get discarded
   let useNativeCamera = false; // after getUserMedia fails once, go straight to the native picker
 
-  function setPhoto(dataUrl) {
+  function setPhoto(dataUrl, blob) {
     uploadedImage = dataUrl;
+    uploadedBlob = blob;
     previewImg.src = dataUrl;
     previewImg.classList.remove("hidden");
     uploadPlaceholder.classList.add("hidden");
+    diagnoseError.classList.add("hidden");
     diagnoseBtn.disabled = false;
     diagnoseBtn.classList.add("ready");
   }
@@ -136,7 +148,7 @@
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => setPhoto(e.target.result);
+    reader.onload = (e) => setPhoto(e.target.result, file);
     reader.readAsDataURL(file);
     input.value = "";
   }
@@ -193,7 +205,15 @@
     canvas.width = cameraVideo.videoWidth;
     canvas.height = cameraVideo.videoHeight;
     canvas.getContext("2d").drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
-    setPhoto(canvas.toDataURL("image/jpeg", 0.92));
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        setPhoto(dataUrl, blob);
+      } else {
+        diagnoseError.textContent = "Couldn't process the captured photo — please try again.";
+        diagnoseError.classList.remove("hidden");
+      }
+    }, "image/jpeg", 0.92);
     stopCamera();
   });
 
@@ -203,18 +223,40 @@
     if (document.hidden) stopCamera();
   });
 
-  diagnoseBtn.addEventListener("click", () => {
-    if (!uploadedImage) return;
+  diagnoseBtn.addEventListener("click", async () => {
+    if (!uploadedBlob) return;
     spinner.classList.add("show");
     diagnoseBtn.disabled = true;
-    setTimeout(() => {
-      const result = mockDiagnose();
+    diagnoseError.classList.add("hidden");
+    try {
       const registeredCrop = getCrops().find((c) => c.id === cropId) || null;
-      sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify({
+      const result = await diagnoseWithApi({
+        imageBlob: uploadedBlob,
+        crop: registeredCrop,
+        profile: getProfile(),
+        userInput: (userNotes.value || "").trim(),
+      });
+      const payload = {
         cropId, cropName: crop, color, emoji, image: uploadedImage, result, crop: registeredCrop,
-      }));
+      };
+      try {
+        sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify(payload));
+      } catch (e) {
+        // Photo too large for sessionStorage — the result page doesn't render it anyway.
+        try {
+          payload.image = null;
+          sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify(payload));
+        } catch (e2) {
+          throw new Error("Diagnosis succeeded, but this browser is blocking storage (private mode?) so the result page can't open. Please retry outside private browsing.");
+        }
+      }
       window.location.href = "diagnosis-result.html";
-    }, 1200);
+    } catch (err) {
+      spinner.classList.remove("show");
+      diagnoseBtn.disabled = false;
+      diagnoseError.textContent = err.message || "Diagnosis failed. Please check your connection and try again.";
+      diagnoseError.classList.remove("hidden");
+    }
   });
 </script>
 
