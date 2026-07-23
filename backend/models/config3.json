@@ -11,7 +11,7 @@
     "data_loader": {
         "type": "PlantVillageDataLoader",
         "args": {
-            "data_dir": "/mnt/d/Project/QI/AgriSage/dataset/plantvillage_prepared3",
+            "data_dir": "C:/Users/am121/OneDrive/Desktop/plant_LLM/plantvillage_prepared3",
             "batch_size": 24,
             "shuffle": true,
             "validation_split": 0.0,
