@@ -19,7 +19,7 @@ treatment.
 
 1. **Diagnose** — A CNN-based image classification model identifies the crop disease from a
    single photo across 38 crop-disease classes spanning 14 crops.
-2. **Explain** — An LLM (Gemini) translates the confirmed diagnosis into an easy-to-understand
+2. **Explain** — An LLM (OpenAI GPT) translates the confirmed diagnosis into an easy-to-understand
    explanation of the symptoms and cause — without re-diagnosing or inventing facts.
 3. **Personalize** — A rule-based filter narrows treatment options based on the grower's
    certification status (conventional/organic), growing environment (open field/greenhouse),

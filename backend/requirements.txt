@@ -2,7 +2,7 @@ flask==3.0.3
 gunicorn==22.0.0
 
 # --- AI (backend/ai) ---
-google-generativeai==0.8.3
+openai>=2.0
 python-dotenv==1.0.1
 numpy
 
@@ -10,3 +10,4 @@ numpy
 torch==2.9.1
 torchvision==0.24.1
 pillow
+opencv-python-headless

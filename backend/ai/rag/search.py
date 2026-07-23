@@ -28,6 +28,8 @@ def _embed_all():
 
 
 def _load_index():
+    from ..llm import client
+
     global _index
     if _index is not None:
         return _index
@@ -35,14 +37,20 @@ def _load_index():
     if os.path.exists(_CACHE_PATH):
         with open(_CACHE_PATH, encoding="utf-8") as f:
             cached = json.load(f)
-        if len(cached) == len(store.list_entries()):
-            _index = [(item["class_id"], np.array(item["vector"])) for item in cached]
+        # Invalid caches (old bare-list format from the Gemini era, a
+        # different embedding model, or a stale entry count) are re-embedded.
+        if (
+            isinstance(cached, dict)
+            and cached.get("embedding_model") == client.get_embedding_model()
+            and len(cached.get("items", [])) == len(store.list_entries())
+        ):
+            _index = [(item["class_id"], np.array(item["vector"])) for item in cached["items"]]
             return _index
 
     vectors = _embed_all()
     os.makedirs(os.path.dirname(_CACHE_PATH), exist_ok=True)
     with open(_CACHE_PATH, "w", encoding="utf-8") as f:
-        json.dump(vectors, f)
+        json.dump({"embedding_model": client.get_embedding_model(), "items": vectors}, f)
     _index = [(item["class_id"], np.array(item["vector"])) for item in vectors]
     return _index
 
