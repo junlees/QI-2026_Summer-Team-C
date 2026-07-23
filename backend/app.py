@@ -78,7 +78,14 @@ def diagnose():
     image_path = os.path.join(UPLOAD_DIR, filename)
     image.save(image_path)
 
-    result = pipeline.diagnose(image_path, profile=profile, user_input=user_input, harvest_date=harvest_date)
+    try:
+        result = pipeline.diagnose(image_path, profile=profile, user_input=user_input, harvest_date=harvest_date)
+    except Exception:
+        app.logger.exception("pipeline.diagnose failed for %s", filename)
+        return jsonify({
+            "status": "error",
+            "message": "Analysis failed — the file may not be a valid photo. Please try another image.",
+        }), 500
 
     diagnosis_id = crud.save_diagnosis(
         crop_id=crop_id,

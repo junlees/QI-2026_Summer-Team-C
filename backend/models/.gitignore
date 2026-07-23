@@ -674,3 +674,8 @@ saved/models/
 *.pth
 
 .claude
+# Deployed classifier weights — the one committed exception to "*.pth" above.
+# weights/classification_model.pth is a slimmed 38MB copy (state_dict +
+# arch/epoch meta, no optimizer/ConfigParser) of PlantVillage_GoogLeNet_6
+# checkpoint-epoch4, used by Render.
+!weights/classification_model.pth

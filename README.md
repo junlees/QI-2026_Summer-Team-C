@@ -2,10 +2,31 @@
 
 > Agriculture + Sage. "We don't just name the problem. We walk you through it."
 
+## Team Introduction
+
+**Team C** — QI 2026 Summer
+
+| Name | Role |
+|------|------|
+| Hyunjun Lee | Team leader · AI model |
+| Hanmin Bae | Backend |
+| Minseong Hong | Dataset |
+| Najin Son | Dataset |
+| Sehyeon Kim | Frontend · LLM |
+
+## Service Introduction
+
 AgriSage is an AI-powered agricultural support service that diagnoses crop diseases from a
 single photo, explains the diagnosis in plain language, recommends a treatment tailored to
 the grower's actual situation, and follows up after treatment to confirm the crop is
 recovering.
+
+Take (or upload) a photo of a leaf and AgriSage detects the leaf in the frame, classifies
+the disease with a fine-tuned GoogLeNet model, grounds the result in a structured disease
+knowledge base, and has an LLM (OpenAI GPT) walk you through the diagnosis — what it is,
+why it happened, and what to do — adjusted to your certification (conventional/organic),
+growing environment, harvest schedule (PHI safety), and level of experience. Delivered as
+an installable PWA that works on both web and mobile.
 
 ## The Problem
 
@@ -19,7 +40,7 @@ treatment.
 
 1. **Diagnose** — A CNN-based image classification model identifies the crop disease from a
    single photo across 38 crop-disease classes spanning 14 crops.
-2. **Explain** — An LLM (Gemini) translates the confirmed diagnosis into an easy-to-understand
+2. **Explain** — An LLM (OpenAI GPT) translates the confirmed diagnosis into an easy-to-understand
    explanation of the symptoms and cause — without re-diagnosing or inventing facts.
 3. **Personalize** — A rule-based filter narrows treatment options based on the grower's
    certification status (conventional/organic), growing environment (open field/greenhouse),

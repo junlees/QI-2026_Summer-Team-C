@@ -1,45 +1,53 @@
-"""Gemini API client setup: config loading, text generation, embeddings."""
+"""OpenAI API client setup: config loading, text generation, embeddings."""
 import json
 import os
 import re
 
-import google.generativeai as genai
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 
-_GENERATION_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
-_EMBEDDING_MODEL = os.environ.get("GEMINI_EMBEDDING_MODEL", "models/text-embedding-004")
+_GENERATION_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
-_configured = False
+_client = None
 
 
-def _ensure_configured():
-    global _configured
-    if _configured:
-        return
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
+def _get_client():
+    global _client
+    if _client is not None:
+        return _client
+    if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError(
-            "GEMINI_API_KEY is not set. Add it to backend/.env (see .env.example)."
+            "OPENAI_API_KEY is not set. Add it to backend/.env (see .env.example)."
         )
-    genai.configure(api_key=api_key)
-    _configured = True
+    _client = OpenAI()
+    return _client
+
+
+def get_embedding_model():
+    """Return the active embedding model name (used for cache invalidation)."""
+    return _EMBEDDING_MODEL
 
 
 def generate_text(prompt, json_mode=False):
-    """Call Gemini with a single prompt string, return raw text."""
-    _ensure_configured()
-    model = genai.GenerativeModel(_GENERATION_MODEL)
+    """Call OpenAI with a single prompt string, return raw text."""
+    client = _get_client()
+    messages = [{"role": "user", "content": prompt}]
     kwargs = {}
     if json_mode:
-        kwargs["generation_config"] = {"response_mime_type": "application/json"}
-    response = model.generate_content(prompt, **kwargs)
-    return response.text
+        # OpenAI's json_object mode requires the word "JSON" in the messages.
+        messages.insert(0, {"role": "system", "content": "Respond only with a valid JSON object."})
+        kwargs["response_format"] = {"type": "json_object"}
+    response = client.chat.completions.create(
+        model=_GENERATION_MODEL, messages=messages, **kwargs
+    )
+    return response.choices[0].message.content
 
 
 def generate_json(prompt):
-    """Call Gemini expecting a JSON object back; tolerate stray code fences."""
+    """Call OpenAI expecting a JSON object back; tolerate stray code fences."""
     raw = generate_text(prompt, json_mode=True)
     text = raw.strip()
     match = re.search(r"\{.*\}", text, re.DOTALL)
@@ -49,6 +57,11 @@ def generate_json(prompt):
 
 
 def embed_text(text, task_type="RETRIEVAL_DOCUMENT"):
-    _ensure_configured()
-    result = genai.embed_content(model=_EMBEDDING_MODEL, content=text, task_type=task_type)
-    return result["embedding"]
+    """Embed a text string.
+
+    task_type is kept for caller compatibility (a Gemini-era concept);
+    OpenAI embeddings do not use it.
+    """
+    client = _get_client()
+    result = client.embeddings.create(model=_EMBEDDING_MODEL, input=text)
+    return result.data[0].embedding

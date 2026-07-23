@@ -75,5 +75,5 @@ def generate_explanation(kb_entry, confidence, severity, profile, level_info, ha
         "recommended_actions": body.get("recommended_actions", []),
         "product_recommendation": product,
         "understanding_level": level_info["understanding_level"],
-        "description_generation_method": "LLM (Gemini)",
+        "description_generation_method": "LLM (OpenAI GPT)",
     }

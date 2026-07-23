@@ -72,11 +72,29 @@
         <div class="text-[0.86rem] font-bold" id="trafficLightLabel"></div>
       </div>
 
+      <div class="hidden bg-card border border-border rounded-2xl p-[0.9rem] mb-[1.2rem]" id="photoCard">
+        <h4 class="m-0 mb-[0.6rem] text-[0.78rem] text-muted uppercase tracking-[0.04em]">Analyzed Photo</h4>
+        <div class="flex justify-center">
+          <div class="relative inline-block max-w-full">
+            <img src="" alt="Analyzed leaf photo" class="block max-w-full max-h-[260px] object-contain rounded-[12px]" id="analyzedPhoto">
+            <div class="hidden absolute border-2 border-danger rounded-[4px] pointer-events-none" id="leafBox"></div>
+          </div>
+        </div>
+        <p class="hidden m-0 mt-[0.5rem] text-[0.74rem] text-muted text-center" id="leafBoxCaption"></p>
+      </div>
+
       <div class="hidden" id="uncertainState">
         <div class="bg-caution-soft border border-[#eddca0] rounded-2xl p-[1.2rem]">
           <h3 class="m-0 mb-[0.4rem] text-[0.95rem]">We can't confidently identify this issue</h3>
           <p class="m-0 mb-[0.8rem] text-[0.84rem] leading-relaxed text-ink">The photo didn't give us enough confidence to name a specific disease. We recommend consulting an expert before treating.</p>
           <a href="#" class="inline-block text-[0.82rem] font-bold text-accent-dark">Find a nearby agricultural extension center →</a>
+        </div>
+      </div>
+
+      <div class="hidden" id="healthyState">
+        <div class="bg-accent-soft border border-transparent rounded-2xl p-[1.2rem]">
+          <h3 class="m-0 mb-[0.4rem] text-[0.95rem]">No disease detected 🌱</h3>
+          <p class="m-0 text-[0.84rem] leading-relaxed text-ink" id="healthyMessage"></p>
         </div>
       </div>
 
@@ -104,6 +122,8 @@
 
         <div class="bg-card border border-border rounded-2xl p-[1.2rem] mb-[0.9rem]">
           <h4 class="m-0 mb-[0.6rem] text-[0.78rem] text-muted uppercase tracking-[0.04em]">Personalized Treatment Recommendation</h4>
+
+          <div class="hidden mb-[0.6rem]" id="actionList"></div>
 
           <div id="recommendationList"></div>
 
@@ -153,10 +173,45 @@
 
     const chip = document.getElementById("cropChip");
     chip.style.background = color;
-    chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${emoji}</span> ${cropName}`;
+    chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${escapeHtml(emoji)}</span> ${escapeHtml(cropName)}`;
 
-    const isUncertain = result.confidence < 70;
-    const isUrgent = !isUncertain && result.severity === "very high";
+    // Analyzed photo + bounding box over the auto-selected leaf. The bbox is
+    // in the photo's intrinsic pixel space (server applies EXIF rotation, so
+    // it matches the browser's displayed orientation); position it with
+    // percentages so it stays aligned at any display size.
+    const leafDet = result.leafDetection || null;
+    if (pending.image) {
+      const photo = document.getElementById("analyzedPhoto");
+      const leafBox = document.getElementById("leafBox");
+      const boxCaption = document.getElementById("leafBoxCaption");
+      document.getElementById("photoCard").classList.remove("hidden");
+      photo.src = pending.image;
+      const placeLeafBox = () => {
+        if (!(leafDet && leafDet.applied && Array.isArray(leafDet.bbox) && photo.naturalWidth && photo.naturalHeight)) return;
+        const [bx0, by0, bx1, by1] = leafDet.bbox;
+        leafBox.style.left = (bx0 / photo.naturalWidth) * 100 + "%";
+        leafBox.style.top = (by0 / photo.naturalHeight) * 100 + "%";
+        leafBox.style.width = ((bx1 - bx0) / photo.naturalWidth) * 100 + "%";
+        leafBox.style.height = ((by1 - by0) / photo.naturalHeight) * 100 + "%";
+        leafBox.classList.remove("hidden");
+        boxCaption.textContent = leafDet.fallback
+          ? "No clear leaf outline found — the center of the photo was analyzed instead."
+          : `Detected leaf — auto-selected${leafDet.num_candidates > 1 ? ` from ${leafDet.num_candidates} candidates` : ""} and sent to the classifier.`;
+        boxCaption.classList.remove("hidden");
+      };
+      if (photo.complete && photo.naturalWidth) placeLeafBox();
+      else photo.onload = placeLeafBox;
+    }
+
+    // Escape LLM/API-provided strings before any innerHTML insertion.
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    // Real API results carry an explicit status; legacy/mock results fall back
+    // to the original confidence gate (order is load-bearing — see CLAUDE.md).
+    const status = result.status || (result.confidence < 70 ? "uncertain" : "diagnosed");
+    const isUncertain = status === "uncertain";
+    const isHealthy = status === "healthy";
+    const isUrgent = !isUncertain && !isHealthy && (result.trafficLight === "urgent" || result.severity === "very high");
 
     const trafficLight = document.getElementById("trafficLight");
     const trafficLightIcon = document.getElementById("trafficLightIcon");
@@ -166,6 +221,11 @@
       trafficLightIcon.textContent = "🟡";
       trafficLightLabel.textContent = `Low confidence (${result.confidence}%) — expert review recommended`;
       trafficLightLabel.className = "text-[0.86rem] font-bold text-caution";
+    } else if (isHealthy) {
+      trafficLight.className = "flex items-center gap-[0.7rem] rounded-2xl px-4 py-[0.9rem] mb-[1.2rem] bg-accent-soft border border-transparent";
+      trafficLightIcon.textContent = "🟢";
+      trafficLightLabel.textContent = `No disease detected (${result.confidence}% confidence)`;
+      trafficLightLabel.className = "text-[0.86rem] font-bold text-accent-dark";
     } else if (isUrgent) {
       trafficLight.className = "flex items-center gap-[0.7rem] rounded-2xl px-4 py-[0.9rem] mb-[1.2rem] bg-danger-soft border border-[#f0c6c2]";
       trafficLightIcon.textContent = "🔴";
@@ -181,6 +241,11 @@
     if (isUncertain) {
       document.getElementById("uncertainState").classList.remove("hidden");
       document.getElementById("confirmedState").classList.add("hidden");
+    } else if (isHealthy) {
+      document.getElementById("healthyState").classList.remove("hidden");
+      document.getElementById("confirmedState").classList.add("hidden");
+      document.getElementById("healthyMessage").textContent =
+        result.symptoms || `The ${cropName} plant appears healthy. Keep monitoring it and re-check if new symptoms appear.`;
     } else {
       document.getElementById("diseaseName").textContent = result.name + (isUrgent ? " · Urgent" : "");
       document.getElementById("confScore").textContent = `Confidence ${result.confidence}%`;
@@ -192,16 +257,25 @@
         document.getElementById("phiBanner").classList.remove("hidden");
       }
 
+      const actions = result.actions || [];
+      const actionList = document.getElementById("actionList");
+      if (actions.length) {
+        actionList.innerHTML = actions.map((a) => `
+          <div class="flex gap-[0.5rem] text-[0.84rem] leading-relaxed text-ink mb-[0.4rem]"><span class="text-accent-dark font-bold">✓</span><span>${esc(a)}</span></div>
+        `).join("");
+        actionList.classList.remove("hidden");
+      }
+
       const recList = document.getElementById("recommendationList");
       if (result.recommendations.length) {
         recList.innerHTML = result.recommendations.map((rec) => `
           <div class="border border-border rounded-2xl p-[0.9rem] mb-[0.6rem]">
-            <div class="text-[0.9rem] font-bold mb-[0.3rem]">${rec.product}</div>
-            <p class="m-0 mb-[0.4rem] text-[0.8rem] leading-relaxed text-ink"><b class="text-muted font-bold">Why this:</b> ${rec.reason}</p>
-            <p class="m-0 text-[0.8rem] leading-relaxed text-muted"><b class="text-ink font-bold">How to use:</b> ${rec.usage}</p>
+            <div class="text-[0.9rem] font-bold mb-[0.3rem]">${esc(rec.product)}</div>
+            <p class="m-0 mb-[0.4rem] text-[0.8rem] leading-relaxed text-ink"><b class="text-muted font-bold">Why this:</b> ${esc(rec.reason)}</p>
+            <p class="m-0 text-[0.8rem] leading-relaxed text-muted"><b class="text-ink font-bold">How to use:</b> ${esc(rec.usage)}</p>
           </div>
         `).join("");
-      } else {
+      } else if (!actions.length) {
         document.getElementById("noRecommendations").classList.remove("hidden");
       }
 
@@ -211,8 +285,8 @@
         document.getElementById("exclusionToggleLabel").textContent = `Other options we considered (${result.excluded.length})`;
         exclusionList.innerHTML = result.excluded.map((ex) => `
           <div class="bg-page rounded-xl px-[0.8rem] py-[0.6rem]">
-            <div class="text-[0.82rem] font-bold">${ex.product}</div>
-            <p class="m-0 mt-[0.15rem] text-[0.76rem] text-muted leading-relaxed">${ex.reason}</p>
+            <div class="text-[0.82rem] font-bold">${esc(ex.product)}</div>
+            <p class="m-0 mt-[0.15rem] text-[0.76rem] text-muted leading-relaxed">${esc(ex.reason)}</p>
           </div>
         `).join("");
         document.getElementById("exclusionToggle").addEventListener("click", () => {
@@ -235,10 +309,18 @@
         id: historyId,
         date: new Date().toISOString().slice(0, 10),
         cropName, emoji, color,
-        disease: isUncertain ? "Unidentified (low confidence)" : result.name,
+        disease: isUncertain ? "Unidentified (low confidence)" : isHealthy ? "Healthy — no disease" : result.name,
         confidence: result.confidence,
+        diagnosisId: result.diagnosisId || null,
+        // Healthy/uncertain results have no treatment to follow up on — mark
+        // them so the dashboard banner and history badge skip them.
+        ...(isHealthy || isUncertain ? { followUpStatus: "not_needed" } : {}),
+        result,
       });
       document.getElementById("followUpCta").href = `follow-up.html?id=${historyId}`;
+      // Mark the pending payload consumed so a page refresh re-renders this
+      // record read-only instead of appending a duplicate history entry.
+      sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify({ ...pending, viewOnly: true, historyId }));
     }
   }, 600);
 </script>
