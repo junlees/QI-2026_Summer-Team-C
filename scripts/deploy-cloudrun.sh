@@ -21,7 +21,7 @@
 set -euo pipefail
 
 SERVICE="${SERVICE:-agrisage}"
-REGION="${REGION:-asia-northeast3}"   # Seoul
+REGION="${REGION:-us-central1}"   # Iowa
 
 if [[ -z "${OPENAI_API_KEY:-}" ]]; then
   echo "ERROR: export OPENAI_API_KEY before running (it is never committed)." >&2

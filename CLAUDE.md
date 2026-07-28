@@ -53,9 +53,13 @@ CUDA and is far too large for the image), then `backend/requirements.txt`, and
 copies the built frontend in. Cloud Run injects `$PORT` (8080) and gunicorn
 binds to it. `MODEL_CHECKPOINT_PATH`/`MODEL_CONFIG_PATH` are baked into the
 image as `ENV`; `OPENAI_API_KEY` must be supplied at deploy time and is never
-committed. Deploy with `./scripts/deploy-cloudrun.sh` — it wraps
-`gcloud run deploy --source .`, so Cloud Build builds the Dockerfile (no local
-Docker needed); export `OPENAI_API_KEY` in your shell first.
+committed. **Production deploys via Cloud Run's GitHub continuous deployment**:
+in the Cloud Run console, connect this repo with Build Type "Dockerfile" (region
+`us-central1`), set `OPENAI_API_KEY` under Variables & Secrets (the `MODEL_*`
+paths are baked into the image), and every push to the connected branch triggers
+a Cloud Build + redeploy — no local Docker or `gcloud` needed.
+`./scripts/deploy-cloudrun.sh` (wrapping `gcloud run deploy --source .`) remains
+a one-off CLI alternative — export `OPENAI_API_KEY` in your shell first.
 
 Quick public demo from a dev machine (no Cloud Run): run the dev server, then
 `cloudflared tunnel --url http://localhost:5000` — gives a temporary public
