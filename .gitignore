@@ -227,7 +227,9 @@ frontend/css/*.css
 # AgriSage backend runtime data
 backend/ai/rag/data/embeddings_cache.json
 backend/uploads/
+# SQLite: the db plus its WAL-mode sidecars (-wal / -shm / -journal)
 backend/db/*.db
+backend/db/*.db-*
 
 # Training dataset (not version-controlled)
 /plantvillage_prepared3/
