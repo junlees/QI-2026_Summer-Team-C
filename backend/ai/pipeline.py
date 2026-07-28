@@ -107,6 +107,9 @@ def diagnose(image_path, profile=None, user_input="", harvest_date=None):
             "num_candidates": detection["num_candidates"],
             "method": detection["method_used"],
             "bbox": detection["bbox"],
+            # tight box around the leaf itself; "bbox" is the padded square the
+            # classifier actually saw, so it includes background at the corners.
+            "leaf_bbox": detection.get("leaf_bbox"),
             "cropped_image": os.path.basename(detection["cropped_path"]),
             "fallback": detection["fallback"],
         }

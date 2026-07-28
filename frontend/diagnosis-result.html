@@ -187,8 +187,11 @@
       document.getElementById("photoCard").classList.remove("hidden");
       photo.src = pending.image;
       const placeLeafBox = () => {
-        if (!(leafDet && leafDet.applied && Array.isArray(leafDet.bbox) && photo.naturalWidth && photo.naturalHeight)) return;
-        const [bx0, by0, bx1, by1] = leafDet.bbox;
+        if (!(leafDet && leafDet.applied && photo.naturalWidth && photo.naturalHeight)) return;
+        // Prefer the tight leaf box; older results only carry the square crop box.
+        const box = Array.isArray(leafDet.leaf_bbox) ? leafDet.leaf_bbox : leafDet.bbox;
+        if (!Array.isArray(box)) return;
+        const [bx0, by0, bx1, by1] = box;
         leafBox.style.left = (bx0 / photo.naturalWidth) * 100 + "%";
         leafBox.style.top = (by0 / photo.naturalHeight) * 100 + "%";
         leafBox.style.width = ((bx1 - bx0) / photo.naturalWidth) * 100 + "%";

@@ -42,16 +42,22 @@ LLM credentials: put `OPENAI_API_KEY` in a `.env` at the repo root or in
 Optional overrides: `OPENAI_MODEL` (default `gpt-4o-mini`),
 `OPENAI_EMBEDDING_MODEL` (default `text-embedding-3-small`).
 
-Run as it runs in production (Render):
+Run as it runs in production (Google Cloud Run — a container built from the
+repo-root `Dockerfile`):
 ```bash
-gunicorn --chdir backend --workers 1 --timeout 120 app:app
+gunicorn --chdir backend --workers 1 --timeout 120 --bind 0.0.0.0:$PORT app:app
 ```
-`render.yaml` installs **CPU-only torch first** (the default PyPI wheel bundles
-CUDA and is far too large), then `backend/requirements.txt`, then the frontend
-npm build. `OPENAI_API_KEY` is declared `sync: false` — set it in the Render
-dashboard, never commit it.
+The `Dockerfile` is multi-stage: a Node stage builds the Tailwind CSS, then a
+Python stage installs **CPU-only torch first** (the default PyPI wheel bundles
+CUDA and is far too large for the image), then `backend/requirements.txt`, and
+copies the built frontend in. Cloud Run injects `$PORT` (8080) and gunicorn
+binds to it. `MODEL_CHECKPOINT_PATH`/`MODEL_CONFIG_PATH` are baked into the
+image as `ENV`; `OPENAI_API_KEY` must be supplied at deploy time and is never
+committed. Deploy with `./scripts/deploy-cloudrun.sh` — it wraps
+`gcloud run deploy --source .`, so Cloud Build builds the Dockerfile (no local
+Docker needed); export `OPENAI_API_KEY` in your shell first.
 
-Quick public demo from a dev machine (no Render): run the dev server, then
+Quick public demo from a dev machine (no Cloud Run): run the dev server, then
 `cloudflared tunnel --url http://localhost:5000` — gives a temporary public
 HTTPS URL (HTTPS is required for the camera capture feature).
 
@@ -124,13 +130,19 @@ backend/           Flask app — serves frontend/ as static files, hosts the API
   models/          Full training/inference codebase (GoogLeNet + ViT on
                     PlantVillage) — see backend/models/CLAUDE.md.
     leaf_detect.py  Torch-free leaf detection module used by the pipeline
-                    (and by predict_leaf.py): ExG Otsu mask → GrabCut
-                    fallback → connected components → if the chosen blob
-                    covers >30% of the frame, a distance-transform watershed
-                    splits merged leaf clusters and slivers are filtered →
-                    nearest-to-center leaf → square 256×256 crop. Images are
-                    loaded with EXIF transpose so bbox coordinates match the
-                    browser's displayed orientation.
+                    (and by predict_leaf.py): ExG Otsu mask → hole fill →
+                    GrabCut fallback → connected components → nearest-to-
+                    center leaf (fragmented leaves re-merged, leaf clusters
+                    split by a gated watershed) → GrabCut refinement that
+                    grows the box over discolored/diseased tissue → square
+                    256×256 **letterboxed** crop. Returns both `bbox` (the
+                    square the classifier saw — may extend outside the photo)
+                    and `leaf_bbox` (tight box around the leaf, always
+                    inside — this is what the UI overlays). Images are loaded
+                    with EXIF transpose so coordinates match the browser's
+                    displayed orientation. Tuning here is measured against a
+                    labeled real-photo set — see backend/models/CLAUDE.md
+                    before changing any gate, the pad, or the fill color.
     weights/        classification_model.pth — slimmed GoogLeNet_6
                     checkpoint-epoch4 (38MB: state_dict + arch/epoch meta,
                     no optimizer/ConfigParser), THE one committed exception
@@ -174,7 +186,8 @@ frontend/           Static HTML + Tailwind CSS, no JS framework.
                       field fall back to the original confidence<70 gate.
                       Shows an "Analyzed Photo" card with the leaf bounding
                       box overlaid (percent-positioned from
-                      result.leafDetection.bbox — server coordinates are
+                      result.leafDetection.leaf_bbox, falling back to .bbox
+                      for older stored results — server coordinates are
                       EXIF-upright so they align with the displayed image).
                       All LLM/API strings go through esc() before innerHTML.
                       On first render it writes a history entry (healthy/
@@ -207,10 +220,19 @@ frontend/           Static HTML + Tailwind CSS, no JS framework.
   icons/               PWA icons, generated from icons/icon.svg (the source
                       of truth) via a one-off `sharp` script — regenerate
                       rather than editing the PNGs by hand.
-render.yaml         Render deploy config: CPU torch install, npm build,
-                    gunicorn start command, env vars (OPENAI_API_KEY is
-                    sync:false; MODEL_CHECKPOINT_PATH/MODEL_CONFIG_PATH point
-                    at the committed weights/config6).
+Dockerfile          Cloud Run container: Node stage builds the Tailwind CSS,
+                    Python stage installs CPU torch + backend/requirements.txt
+                    and copies the built frontend. Bakes
+                    MODEL_CHECKPOINT_PATH/MODEL_CONFIG_PATH as ENV (pointing
+                    at the committed weights/config6) and runs gunicorn bound
+                    to $PORT. OPENAI_API_KEY is supplied at deploy time.
+.dockerignore       Keeps the build context small (excludes .venv,
+                    node_modules, generated CSS, uploads, the SQLite db, and
+                    .env) — but NOT the committed model weights.
+scripts/
+  deploy-cloudrun.sh  Wraps `gcloud run deploy --source .` (Cloud Build builds
+                    the Dockerfile — no local Docker). Reads OPENAI_API_KEY
+                    from the shell; SERVICE/REGION overridable via env.
 ```
 
 **Path convention**: `backend/app.py` resolves `frontend/` relative to its own
@@ -308,7 +330,7 @@ deployed independently of the UI. Do not flatten this back into a single
 directory, do not move model code out of `backend/models/` or AI pipeline
 code out of `backend/ai/`, and do not reintroduce per-page `<style>` blocks,
 a different CSS framework, or a different frontend build tool — Tailwind CLI
-via `frontend/package.json` is the one build path, and `render.yaml` /
+via `frontend/package.json` is the one build path, and the `Dockerfile` /
 `scripts/setup.*` all assume it. Likewise, don't drop the PWA
 manifest/service-worker wiring from a page or introduce a second, native-app
 codebase — this is deliberately one static site that works as both web and

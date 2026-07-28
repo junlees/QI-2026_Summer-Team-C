@@ -1,0 +1,31 @@
+# Keep the build context (and final image) small. NOTE: do NOT exclude
+# backend/models/weights/ — the committed classifier checkpoint must ship.
+
+.git
+.gitignore
+.claude
+.claude/**
+
+# Python
+.venv
+**/__pycache__
+**/*.py[cod]
+
+# Node / Tailwind (rebuilt in the Node stage)
+**/node_modules
+frontend/css/styles.css
+
+# Secrets — never bake these into the image
+.env
+backend/.env
+**/*.env
+
+# Runtime data (regenerated at runtime)
+backend/uploads/
+backend/db/*.db
+backend/ai/rag/data/embeddings_cache.json
+
+# Docs / deploy config that the image doesn't need
+render.yaml
+*.md
+scripts/

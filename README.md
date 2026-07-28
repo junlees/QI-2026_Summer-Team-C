@@ -100,10 +100,12 @@ model and a structured knowledge base, grounded to prevent hallucination.
 │   ├── css/styles.css      # Build output (not committed, generated via npm run build)
 │   ├── tailwind.config.js  # Tailwind theme settings (custom color palette, etc.)
 │   └── package.json
-├── render.yaml             # Render deployment configuration
-├── scripts/                # Local environment setup scripts
+├── Dockerfile              # Cloud Run container (Tailwind build + Python runtime)
+├── .dockerignore           # Build-context excludes (keeps the model weights)
+├── scripts/                # Setup + deploy scripts
 │   ├── setup.sh            # macOS / Linux
-│   └── setup.ps1           # Windows (PowerShell)
+│   ├── setup.ps1           # Windows (PowerShell)
+│   └── deploy-cloudrun.sh  # Deploy to Google Cloud Run
 └── README.md
 ```
 
@@ -174,6 +176,20 @@ Or run it with Gunicorn (production environment equivalent):
 ```bash
 gunicorn --chdir backend app:app
 ```
+
+### Deploy to Google Cloud Run
+
+Production runs as a container built from the repo-root `Dockerfile`. With the
+`gcloud` CLI authenticated and a project selected, deploy with:
+
+```bash
+export OPENAI_API_KEY=sk-...            # never committed
+./scripts/deploy-cloudrun.sh           # SERVICE / REGION overridable via env
+```
+
+The script uses `gcloud run deploy --source .`, so Cloud Build builds the
+Dockerfile — no local Docker needed. `MODEL_CHECKPOINT_PATH` / `MODEL_CONFIG_PATH`
+are baked into the image; Cloud Run injects `$PORT` and gunicorn binds to it.
 
 ## Frontend Styles (Tailwind CSS)
 

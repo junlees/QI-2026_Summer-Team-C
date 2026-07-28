@@ -37,7 +37,7 @@ from test_external import build_transform
 
 # 잎 검출 함수는 torch 없는 경량 모듈 leaf_detect로 분리됨 (중복 방지)
 from leaf_detect import (vegetation_mask_exg, foreground_mask_grabcut, clean_mask,
-                         find_center_leaf, center_square)
+                         find_center_leaf, center_square, crop_square)
 
 
 # ---------------------------------------------------------------- 시각화
@@ -75,9 +75,9 @@ def process(path, model, classes, trsfm, device, args, out_dir):
         if bbox is None:  # 잎 못 찾음 → 중앙 크롭 폴백
             bbox, used = center_square(rgb), used + ' → center-crop(fallback)'
 
-    x0, y0, x1, y1 = bbox
-    crop = rgb[y0:y1, x0:x1]
-    crop256 = cv2.resize(crop, (256, 256), interpolation=cv2.INTER_AREA)  # PlantVillage 규격
+    # 정사각 bbox는 이미지 밖으로 나갈 수 있어 numpy 슬라이스 대신 crop_square를
+    # 쓴다(밖은 여백으로 채움) — 백엔드 detect_and_crop_leaf와 동일 전처리.
+    crop256 = crop_square(rgb, bbox, 256)  # PlantVillage 규격
 
     x = trsfm(Image.fromarray(crop256)).unsqueeze(0).to(device)
     with torch.no_grad():
@@ -95,7 +95,7 @@ def process(path, model, classes, trsfm, device, args, out_dir):
         save_debug(rgb, mask, None if args.no_detect else bbox, cands, crop256, pred, p); saved.append(p)
 
     print(f'\n[{os.path.basename(path)}]  ({rgb.shape[1]}x{rgb.shape[0]}, 검출={used}, 잎후보={len(cands)})')
-    print(f'  크롭 bbox: ({x0},{y0})-({x1},{y1})  → 256x256')
+    print(f'  크롭 bbox: ({bbox[0]},{bbox[1]})-({bbox[2]},{bbox[3]})  → 256x256')
     label, conf = pred[0]
     gate = '  ⚠️ 확신도<70% (불확실)' if conf * 100 < 70 else ''
     print(f'  예측: {label}  ({conf*100:.2f}%){gate}')
