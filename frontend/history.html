@@ -66,15 +66,16 @@
   const statusBadge = (entry) => {
     if (entry.followUpStatus === "resolved") return `<span class="text-[0.68rem] font-bold text-accent-dark">✓ Resolved</span>`;
     if (entry.followUpStatus === "escalate") return `<span class="text-[0.68rem] font-bold text-danger">⚠ Needs expert</span>`;
+    if (entry.followUpStatus === "not_needed") return "";
     return `<span class="text-[0.68rem] font-bold text-muted">Follow-up pending</span>`;
   };
 
   list.innerHTML = history.map((entry) => `
-    <button type="button" class="history-item text-left flex items-center gap-[0.8rem] bg-card border border-border rounded-2xl px-4 py-[0.85rem] cursor-pointer" data-id="${entry.id}">
-      <div class="w-[2.4rem] h-[2.4rem] rounded-full flex items-center justify-center text-[1.3rem] shrink-0" style="background:${entry.color}">${entry.emoji}</div>
+    <button type="button" class="history-item text-left flex items-center gap-[0.8rem] bg-card border border-border rounded-2xl px-4 py-[0.85rem] cursor-pointer" data-id="${escapeHtml(entry.id)}">
+      <div class="w-[2.4rem] h-[2.4rem] rounded-full flex items-center justify-center text-[1.3rem] shrink-0" style="background:${escapeHtml(entry.color)}">${escapeHtml(entry.emoji)}</div>
       <div class="flex-1 min-w-0">
-        <div class="text-[0.9rem] font-bold">${entry.cropName} · ${entry.disease}</div>
-        <div class="text-[0.72rem] text-muted">${entry.date} · Confidence ${entry.confidence}%</div>
+        <div class="text-[0.9rem] font-bold">${escapeHtml(entry.cropName)} · ${escapeHtml(entry.disease)}</div>
+        <div class="text-[0.72rem] text-muted">${escapeHtml(entry.date)} · Confidence ${escapeHtml(entry.confidence)}%</div>
       </div>
       ${statusBadge(entry)}
     </button>
@@ -91,7 +92,9 @@
         color: entry.color,
         emoji: entry.emoji,
         crop: null,
-        result: {
+        // Newer entries store the full diagnosis result; older/seed entries
+        // fall back to a placeholder record.
+        result: entry.result || {
           name: entry.disease,
           confidence: entry.confidence,
           severity: "low",

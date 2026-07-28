@@ -49,12 +49,31 @@
   <main class="flex-1 px-4 md:px-8 pt-4 pb-12">
     <div class="inline-flex items-center gap-2 text-white pl-2 pr-[0.9rem] py-2 rounded-full text-[0.85rem] font-bold mt-[0.3rem] mb-[1.2rem]" id="cropChip"></div>
 
-    <label class="border-2 border-dashed border-border rounded-[20px] bg-card min-h-[220px] flex flex-col items-center justify-center gap-[0.6rem] text-center p-6 cursor-pointer overflow-hidden relative block" id="uploadBox">
-      <input type="file" class="hidden" id="fileInput" accept="image/*" capture="environment">
-      <div class="text-[2rem]">📷</div>
-      <h3 class="m-0 text-[0.95rem]">Upload a leaf photo</h3>
-      <p class="m-0 text-[0.78rem] text-muted">Tap to take a photo or choose one from your gallery</p>
-    </label>
+    <div class="border-2 border-dashed border-border rounded-[20px] bg-card min-h-[220px] flex flex-col items-center justify-center gap-[0.6rem] text-center p-6 overflow-hidden relative" id="uploadBox">
+      <div class="flex flex-col items-center gap-[0.6rem]" id="uploadPlaceholder">
+        <div class="text-[2rem]">📷</div>
+        <h3 class="m-0 text-[0.95rem]">Upload a leaf photo</h3>
+        <p class="m-0 text-[0.78rem] text-muted">Take a photo or choose one from your gallery below</p>
+      </div>
+      <img src="" alt="Selected leaf photo" class="hidden max-w-full max-h-[180px] object-contain rounded-[14px]" id="previewImg">
+    </div>
+
+    <input type="file" class="hidden" id="galleryInput" accept="image/jpeg,image/png">
+    <input type="file" class="hidden" id="cameraFallbackInput" accept="image/jpeg,image/png" capture="environment">
+
+    <div class="flex gap-[0.6rem] mt-[0.8rem]">
+      <button type="button" class="flex-1 flex items-center justify-center gap-2 bg-accent text-white rounded-2xl py-3 text-[0.85rem] font-bold shadow-xs hover:bg-accent-dark transition-colors" id="takePhotoBtn">📸 Take photo</button>
+      <button type="button" class="flex-1 flex items-center justify-center gap-2 bg-accent-soft text-accent-dark border border-border rounded-2xl py-3 text-[0.85rem] font-bold hover:border-accent transition-colors" id="galleryBtn">🖼️ Choose from gallery</button>
+    </div>
+    <p class="hidden m-0 mt-[0.5rem] text-[0.74rem] text-muted text-center" id="cameraHint">In-page camera isn't available here — opening your device camera instead.</p>
+
+    <div class="hidden bg-card border border-border rounded-2xl p-3 mt-[0.8rem]" id="cameraPanel">
+      <video autoplay playsinline muted class="w-full rounded-[14px] bg-black" id="cameraVideo"></video>
+      <div class="flex gap-[0.6rem] mt-3">
+        <button type="button" class="flex-1 flex items-center justify-center gap-2 bg-accent text-white rounded-2xl py-3 text-[0.85rem] font-bold shadow-xs hover:bg-accent-dark transition-colors" id="shutterBtn">📸 Capture</button>
+        <button type="button" class="flex-1 flex items-center justify-center gap-2 bg-card text-muted border border-border rounded-2xl py-3 text-[0.85rem] font-bold hover:text-ink hover:border-accent transition-colors" id="cameraCancelBtn">✕ Cancel</button>
+      </div>
+    </div>
 
     <div class="flex gap-[0.6rem] bg-card border border-border rounded-2xl px-4 py-[0.8rem] mt-[0.8rem]">
       <div class="text-[1.05rem]">💡</div>
@@ -63,7 +82,14 @@
       </div>
     </div>
 
+    <label class="block bg-card border border-border rounded-2xl px-4 py-[0.8rem] mt-[0.8rem]">
+      <span class="block text-[0.78rem] font-bold text-ink mb-[0.35rem]">Anything you noticed? <span class="text-muted font-medium">(optional — helps tailor the explanation)</span></span>
+      <textarea id="userNotes" rows="2" placeholder="e.g. Spots appeared 3 days ago after heavy rain" class="w-full resize-none bg-transparent text-[0.84rem] text-ink placeholder:text-muted focus:outline-none"></textarea>
+    </label>
+
     <button class="primary-btn mt-[1.1rem]" id="diagnoseBtn" disabled>Run AI Diagnosis</button>
+
+    <div class="hidden bg-danger-soft border border-[#f0c6c2] rounded-2xl px-4 py-[0.8rem] mt-[0.8rem] text-[0.82rem] text-danger font-bold" id="diagnoseError"></div>
 
     <div class="spinner" id="spinner">
       <div class="w-2 h-2 rounded-full bg-accent animate-dot-pulse"></div>
@@ -84,39 +110,153 @@
 
   const chip = document.getElementById("cropChip");
   chip.style.background = color;
-  chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${emoji}</span> Diagnosing ${crop}`;
+  chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${escapeHtml(emoji)}</span> Diagnosing ${escapeHtml(crop)}`;
 
-  const fileInput = document.getElementById("fileInput");
-  const uploadBox = document.getElementById("uploadBox");
+  const uploadPlaceholder = document.getElementById("uploadPlaceholder");
+  const previewImg = document.getElementById("previewImg");
+  const galleryInput = document.getElementById("galleryInput");
+  const cameraFallbackInput = document.getElementById("cameraFallbackInput");
+  const takePhotoBtn = document.getElementById("takePhotoBtn");
+  const galleryBtn = document.getElementById("galleryBtn");
+  const cameraHint = document.getElementById("cameraHint");
+  const cameraPanel = document.getElementById("cameraPanel");
+  const cameraVideo = document.getElementById("cameraVideo");
+  const shutterBtn = document.getElementById("shutterBtn");
+  const cameraCancelBtn = document.getElementById("cameraCancelBtn");
   const diagnoseBtn = document.getElementById("diagnoseBtn");
+  const diagnoseError = document.getElementById("diagnoseError");
+  const userNotes = document.getElementById("userNotes");
   const spinner = document.getElementById("spinner");
-  let uploadedImage = null;
+  let uploadedImage = null;   // data URL for preview / result-page payload
+  let uploadedBlob = null;    // the actual bytes POSTed to /api/diagnose
+  let cameraStream = null;
+  let camRequest = 0;          // bumped by stopCamera; stale getUserMedia results get discarded
+  let useNativeCamera = false; // after getUserMedia fails once, go straight to the native picker
 
-  fileInput.addEventListener("change", () => {
-    const file = fileInput.files[0];
+  function setPhoto(dataUrl, blob) {
+    uploadedImage = dataUrl;
+    uploadedBlob = blob;
+    previewImg.src = dataUrl;
+    previewImg.classList.remove("hidden");
+    uploadPlaceholder.classList.add("hidden");
+    diagnoseError.classList.add("hidden");
+    diagnoseBtn.disabled = false;
+    diagnoseBtn.classList.add("ready");
+  }
+
+  function handleFileInput(input) {
+    const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImage = e.target.result;
-      uploadBox.innerHTML = `<img src="${uploadedImage}" alt="Uploaded photo" class="w-full h-[220px] object-cover rounded-[14px]">`;
-      diagnoseBtn.disabled = false;
-      diagnoseBtn.classList.add("ready");
-    };
+    reader.onload = (e) => setPhoto(e.target.result, file);
     reader.readAsDataURL(file);
+    input.value = "";
+  }
+
+  galleryInput.addEventListener("change", () => handleFileInput(galleryInput));
+  cameraFallbackInput.addEventListener("change", () => handleFileInput(cameraFallbackInput));
+  galleryBtn.addEventListener("click", () => galleryInput.click());
+
+  function stopCamera() {
+    camRequest++;
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      cameraStream = null;
+    }
+    cameraVideo.srcObject = null;
+    cameraPanel.classList.add("hidden");
+  }
+
+  function fallbackToNativeCamera() {
+    useNativeCamera = true;
+    stopCamera();
+    cameraHint.classList.remove("hidden");
+    cameraFallbackInput.click();
+  }
+
+  takePhotoBtn.addEventListener("click", async () => {
+    if (useNativeCamera || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      fallbackToNativeCamera(); // synchronous, so the picker opens under fresh user activation
+      return;
+    }
+    stopCamera(); // release any previous stream before requesting a new one
+    const requestId = camRequest;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      if (requestId !== camRequest || document.hidden) {
+        stream.getTracks().forEach((track) => track.stop()); // page hidden/left while waiting
+        return;
+      }
+      cameraStream = stream;
+      cameraHint.classList.add("hidden");
+      cameraVideo.srcObject = stream;
+      cameraPanel.classList.remove("hidden");
+    } catch (err) {
+      fallbackToNativeCamera();
+    }
   });
 
-  diagnoseBtn.addEventListener("click", () => {
-    if (!uploadedImage) return;
+  shutterBtn.addEventListener("click", () => {
+    if (!cameraStream || !cameraVideo.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = cameraVideo.videoWidth;
+    canvas.height = cameraVideo.videoHeight;
+    canvas.getContext("2d").drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        setPhoto(dataUrl, blob);
+      } else {
+        diagnoseError.textContent = "Couldn't process the captured photo — please try again.";
+        diagnoseError.classList.remove("hidden");
+      }
+    }, "image/jpeg", 0.92);
+    stopCamera();
+  });
+
+  cameraCancelBtn.addEventListener("click", stopCamera);
+  window.addEventListener("pagehide", stopCamera);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopCamera();
+  });
+
+  diagnoseBtn.addEventListener("click", async () => {
+    if (!uploadedBlob) return;
     spinner.classList.add("show");
     diagnoseBtn.disabled = true;
-    setTimeout(() => {
-      const result = mockDiagnose();
+    diagnoseError.classList.add("hidden");
+    try {
       const registeredCrop = getCrops().find((c) => c.id === cropId) || null;
-      sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify({
+      const result = await diagnoseWithApi({
+        imageBlob: uploadedBlob,
+        crop: registeredCrop,
+        profile: getProfile(),
+        userInput: (userNotes.value || "").trim(),
+      });
+      const payload = {
         cropId, cropName: crop, color, emoji, image: uploadedImage, result, crop: registeredCrop,
-      }));
+      };
+      try {
+        sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify(payload));
+      } catch (e) {
+        // Photo too large for sessionStorage — the result page doesn't render it anyway.
+        try {
+          payload.image = null;
+          sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify(payload));
+        } catch (e2) {
+          throw new Error("Diagnosis succeeded, but this browser is blocking storage (private mode?) so the result page can't open. Please retry outside private browsing.");
+        }
+      }
       window.location.href = "diagnosis-result.html";
-    }, 1200);
+    } catch (err) {
+      spinner.classList.remove("show");
+      diagnoseBtn.disabled = false;
+      diagnoseError.textContent = err.message || "Diagnosis failed. Please check your connection and try again.";
+      diagnoseError.classList.remove("hidden");
+    }
   });
 </script>
 

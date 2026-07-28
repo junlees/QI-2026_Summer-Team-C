@@ -98,7 +98,7 @@
   const chip = document.getElementById("cropChip");
   if (entry) {
     chip.style.background = entry.color;
-    chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${entry.emoji}</span> ${entry.cropName} · ${entry.disease}`;
+    chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${escapeHtml(entry.emoji)}</span> ${escapeHtml(entry.cropName)} · ${escapeHtml(entry.disease)}`;
   } else {
     chip.style.background = "#3f7d20";
     chip.textContent = "Follow-up check";

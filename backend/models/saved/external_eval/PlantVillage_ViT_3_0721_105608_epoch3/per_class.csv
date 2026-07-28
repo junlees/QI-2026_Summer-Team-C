@@ -1,0 +1,17 @@
+pv_class,support,f1
+Apple___Apple_scab,592,0.7483
+Apple___Cedar_apple_rust,622,0.3042
+Apple___healthy,516,0.2902
+Corn_(maize)___healthy,204,0.7299
+Grape___Black_rot,808,0.1234
+Grape___Esca_(Black_Measles),888,0.5541
+Grape___Leaf_blight_(Isariopsis_Leaf_Spot),672,0.1509
+Grape___healthy,1109,0.0051
+Potato___healthy,201,0.3313
+Tomato___Bacterial_spot,9,0.0000
+Tomato___Early_blight,277,0.3745
+Tomato___Late_blight,123,0.0851
+Tomato___Leaf_Mold,9,0.0000
+Tomato___Septoria_leaf_spot,720,0.6082
+Tomato___Target_Spot,54,0.0000
+Tomato___healthy,466,0.0000

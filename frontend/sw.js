@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app installable and usable offline.
 // Bump CACHE_NAME whenever precached files change so old caches get cleared.
-const CACHE_NAME = "agrisage-v3";
+const CACHE_NAME = "agrisage-v4";
 const PRECACHE_URLS = [
   "/",
   "landing.html",

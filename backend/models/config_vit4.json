@@ -1,0 +1,59 @@
+{
+    "name": "PlantVillage_ViT_4",
+    "n_gpu": 1,
+    "arch": {
+        "type": "ViTPlant",
+        "args": {
+            "num_classes": 25,
+            "pretrained": true
+        }
+    },
+    "data_loader": {
+        "type": "PlantVillageDataLoader",
+        "args": {
+            "data_dir": "/mnt/d/Project/QI/AgriSage/dataset/plantvillage_prepared4",
+            "batch_size": 64,
+            "shuffle": true,
+            "validation_split": 0.0,
+            "num_workers": 8
+        }
+    },
+    "optimizer": {
+        "type": "AdamW",
+        "args": {
+            "lr": 0.0001,
+            "weight_decay": 0.05
+        }
+    },
+    "loss": "cross_entropy",
+    "loss_args": {
+        "label_smoothing": 0.1
+    },
+    "metrics": [
+        "accuracy",
+        "macro_f1"
+    ],
+    "lr_scheduler": {
+        "type": "WarmupCosineAnnealingLR",
+        "args": {
+            "warmup_epochs": 3,
+            "total_epochs": 10,
+            "start_factor": 0.1,
+            "eta_min": 0.000001
+        }
+    },
+    "trainer": {
+        "epochs": 10,
+        "save_dir": "saved/",
+        "save_period": 1,
+        "verbosity": 2,
+
+        "monitor": "max val_macro_f1",
+        "early_stop": 0,
+        "amp": true,
+        "amp_init_scale": 1024.0,
+        "grad_clip_norm": 1.0,
+
+        "tensorboard": true
+    }
+}

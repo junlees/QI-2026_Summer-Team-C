@@ -2,10 +2,31 @@
 
 > Agriculture + Sage. "We don't just name the problem. We walk you through it."
 
+## Team Introduction
+
+**Team C** — QI 2026 Summer
+
+| Name | Role |
+|------|------|
+| Hyunjun Lee | Team leader · AI model |
+| Hanmin Bae | Backend |
+| Minseong Hong | Dataset |
+| Najin Son | Dataset |
+| Sehyeon Kim | Frontend · LLM |
+
+## Service Introduction
+
 AgriSage is an AI-powered agricultural support service that diagnoses crop diseases from a
 single photo, explains the diagnosis in plain language, recommends a treatment tailored to
 the grower's actual situation, and follows up after treatment to confirm the crop is
 recovering.
+
+Take (or upload) a photo of a leaf and AgriSage detects the leaf in the frame, classifies
+the disease with a fine-tuned GoogLeNet model, grounds the result in a structured disease
+knowledge base, and has an LLM (OpenAI GPT) walk you through the diagnosis — what it is,
+why it happened, and what to do — adjusted to your certification (conventional/organic),
+growing environment, harvest schedule (PHI safety), and level of experience. Delivered as
+an installable PWA that works on both web and mobile.
 
 ## The Problem
 
@@ -19,7 +40,7 @@ treatment.
 
 1. **Diagnose** — A CNN-based image classification model identifies the crop disease from a
    single photo across 38 crop-disease classes spanning 14 crops.
-2. **Explain** — An LLM (Gemini) translates the confirmed diagnosis into an easy-to-understand
+2. **Explain** — An LLM (OpenAI GPT) translates the confirmed diagnosis into an easy-to-understand
    explanation of the symptoms and cause — without re-diagnosing or inventing facts.
 3. **Personalize** — A rule-based filter narrows treatment options based on the grower's
    certification status (conventional/organic), growing environment (open field/greenhouse),
@@ -79,10 +100,12 @@ model and a structured knowledge base, grounded to prevent hallucination.
 │   ├── css/styles.css      # Build output (not committed, generated via npm run build)
 │   ├── tailwind.config.js  # Tailwind theme settings (custom color palette, etc.)
 │   └── package.json
-├── render.yaml             # Render deployment configuration
-├── scripts/                # Local environment setup scripts
+├── Dockerfile              # Cloud Run container (Tailwind build + Python runtime)
+├── .dockerignore           # Build-context excludes (keeps the model weights)
+├── scripts/                # Setup + deploy scripts
 │   ├── setup.sh            # macOS / Linux
-│   └── setup.ps1           # Windows (PowerShell)
+│   ├── setup.ps1           # Windows (PowerShell)
+│   └── deploy-cloudrun.sh  # Deploy to Google Cloud Run
 └── README.md
 ```
 
@@ -153,6 +176,20 @@ Or run it with Gunicorn (production environment equivalent):
 ```bash
 gunicorn --chdir backend app:app
 ```
+
+### Deploy to Google Cloud Run
+
+Production runs as a container built from the repo-root `Dockerfile`. With the
+`gcloud` CLI authenticated and a project selected, deploy with:
+
+```bash
+export OPENAI_API_KEY=sk-...            # never committed
+./scripts/deploy-cloudrun.sh           # SERVICE / REGION overridable via env
+```
+
+The script uses `gcloud run deploy --source .`, so Cloud Build builds the
+Dockerfile — no local Docker needed. `MODEL_CHECKPOINT_PATH` / `MODEL_CONFIG_PATH`
+are baked into the image; Cloud Run injects `$PORT` and gunicorn binds to it.
 
 ## Frontend Styles (Tailwind CSS)
 
