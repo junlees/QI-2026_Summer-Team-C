@@ -11,8 +11,10 @@
 #   - the required APIs enabled (run once):
 #       gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
 #         artifactregistry.googleapis.com
-#   - OPENAI_API_KEY exported in your shell (never commit it):
+#   - secrets exported in your shell (never commit them):
 #       export OPENAI_API_KEY=sk-...
+#       export JWT_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
+#       export ADMIN_ID=admin@agrisage.app ADMIN_PASSWORD=...
 #
 # Usage:
 #   ./scripts/deploy-cloudrun.sh
@@ -23,11 +25,12 @@ set -euo pipefail
 SERVICE="${SERVICE:-agrisage}"
 REGION="${REGION:-asia-northeast3}"   # Seoul
 
-if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-  echo "ERROR: export OPENAI_API_KEY before running (it is never committed)." >&2
-  echo "  export OPENAI_API_KEY=sk-..." >&2
-  exit 1
-fi
+for var in OPENAI_API_KEY JWT_SECRET ADMIN_ID ADMIN_PASSWORD; do
+  if [[ -z "${!var:-}" ]]; then
+    echo "ERROR: export ${var} before running (it is never committed)." >&2
+    exit 1
+  fi
+done
 
 # Run from the repo root so `--source .` picks up the Dockerfile and all code.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -37,6 +40,9 @@ cd "$REPO_ROOT"
 # as defaults; passing them here keeps them explicit/overridable. Add
 # OPENAI_MODEL / OPENAI_EMBEDDING_MODEL to this list to override the defaults.
 ENV_VARS="OPENAI_API_KEY=${OPENAI_API_KEY}"
+ENV_VARS="${ENV_VARS},JWT_SECRET=${JWT_SECRET}"
+ENV_VARS="${ENV_VARS},ADMIN_ID=${ADMIN_ID}"
+ENV_VARS="${ENV_VARS},ADMIN_PASSWORD=${ADMIN_PASSWORD}"
 ENV_VARS="${ENV_VARS},MODEL_CHECKPOINT_PATH=backend/models/weights/classification_model.pth"
 ENV_VARS="${ENV_VARS},MODEL_CONFIG_PATH=backend/models/config6.json"
 

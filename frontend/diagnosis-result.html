@@ -151,13 +151,14 @@
 
 <script src="js/store.js"></script>
 <script>
+  requireAuth();
   const spinner = document.getElementById("spinner");
   const errorState = document.getElementById("errorState");
   const content = document.getElementById("content");
 
   const pendingRaw = sessionStorage.getItem("agrisage_pending_diagnosis");
 
-  setTimeout(() => {
+  setTimeout(async () => {
     spinner.classList.remove("show");
 
     if (!pendingRaw) {
@@ -167,7 +168,6 @@
 
     const pending = JSON.parse(pendingRaw);
     const { cropName, color, emoji, result, crop } = pending;
-    const profile = getProfile();
 
     content.classList.remove("hidden");
 
@@ -255,7 +255,10 @@
       document.getElementById("diseaseDesc").textContent = result.symptoms;
       document.getElementById("diseaseCause").textContent = result.cause;
 
-      const purpose = resolvePurpose(crop, profile);
+      // Prefer the purpose the server actually used for THIS diagnosis; only
+      // legacy results without it fall back to the current profile chain.
+      let purpose = result.effectivePurpose;
+      if (!purpose) purpose = resolvePurpose(crop, await getProfile());
       if (purpose === "sale") {
         document.getElementById("phiBanner").classList.remove("hidden");
       }
@@ -302,29 +305,12 @@
       }
     }
 
-    if (pending.viewOnly) {
-      // Reached from history.html — show the record, don't create a new entry.
-      document.getElementById("followUpCta").href = `follow-up.html?id=${pending.historyId}`;
-    } else {
-      // Record this diagnosis in history so dashboard/follow-up/history can reference it.
-      const historyId = `diag_${Date.now()}`;
-      addHistoryEntry({
-        id: historyId,
-        date: new Date().toISOString().slice(0, 10),
-        cropName, emoji, color,
-        disease: isUncertain ? "Unidentified (low confidence)" : isHealthy ? "Healthy — no disease" : result.name,
-        confidence: result.confidence,
-        diagnosisId: result.diagnosisId || null,
-        // Healthy/uncertain results have no treatment to follow up on — mark
-        // them so the dashboard banner and history badge skip them.
-        ...(isHealthy || isUncertain ? { followUpStatus: "not_needed" } : {}),
-        result,
-      });
-      document.getElementById("followUpCta").href = `follow-up.html?id=${historyId}`;
-      // Mark the pending payload consumed so a page refresh re-renders this
-      // record read-only instead of appending a duplicate history entry.
-      sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify({ ...pending, viewOnly: true, historyId }));
-    }
+    // The server already recorded this diagnosis during /api/diagnose (and
+    // marked healthy/uncertain as follow-up "not_needed"), so nothing is
+    // written here — a refresh just re-renders. History re-entries carry
+    // historyId; fresh results carry the server-assigned diagnosisId.
+    const followUpId = pending.viewOnly ? pending.historyId : result.diagnosisId;
+    document.getElementById("followUpCta").href = `follow-up.html?id=${followUpId}`;
   }, 600);
 </script>
 

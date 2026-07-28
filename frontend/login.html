@@ -33,16 +33,20 @@
     <form id="loginForm" class="flex flex-col gap-[0.9rem]">
       <label class="flex flex-col gap-[0.35rem]">
         <span class="text-[0.78rem] font-bold text-muted">Email</span>
-        <input type="email" required placeholder="you@example.com"
+        <!-- type="text" (not "email"): the admin account id from the server's
+             .env may not be email-shaped, and type="email" would block it. -->
+        <input type="text" name="email" inputmode="email" autocomplete="username" required placeholder="you@example.com"
           class="w-full border border-border rounded-2xl px-4 py-[0.85rem] text-[0.92rem] bg-card text-ink outline-none focus:border-accent">
       </label>
       <label class="flex flex-col gap-[0.35rem]">
         <span class="text-[0.78rem] font-bold text-muted">Password</span>
-        <input type="password" required placeholder="••••••••"
+        <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••"
           class="w-full border border-border rounded-2xl px-4 py-[0.85rem] text-[0.92rem] bg-card text-ink outline-none focus:border-accent">
       </label>
 
-      <button type="submit" class="w-full border-none rounded-2xl py-[0.95rem] text-[0.95rem] font-bold bg-accent text-white cursor-pointer mt-[0.4rem]">
+      <p id="loginError" class="hidden m-0 text-[0.8rem] font-bold text-danger bg-danger-soft border border-[#f0c6c2] rounded-xl px-3 py-[0.6rem]"></p>
+
+      <button id="loginBtn" type="submit" class="w-full border-none rounded-2xl py-[0.95rem] text-[0.95rem] font-bold bg-accent text-white cursor-pointer mt-[0.4rem] disabled:opacity-60">
         Log in
       </button>
     </form>
@@ -55,26 +59,26 @@
     </a>
   </main>
 
-  <div class="px-[1.6rem] pb-[2rem]">
-    <p class="m-0 text-center text-[0.72rem] text-muted">
-      This is a prototype — no account or password is actually checked yet.
-    </p>
-  </div>
-
 </div>
 
 <script src="js/store.js"></script>
 <script>
-  document.getElementById("loginForm").addEventListener("submit", (e) => {
+  const errorEl = document.getElementById("loginError");
+  const loginBtn = document.getElementById("loginBtn");
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = e.target.querySelector('input[type="email"]').value;
-    // No real auth yet — reuse the stored profile if one exists (e.g. from
-    // signup.html), otherwise create a minimal placeholder so dashboard.html
-    // and mypage.html have something to read.
-    if (!getProfile()) {
-      saveProfile({ email, certification: "conventional", purpose: "self_consumption" });
+    const email = e.target.querySelector('input[name="email"]').value.trim();
+    const password = e.target.querySelector('input[name="password"]').value;
+    errorEl.classList.add("hidden");
+    loginBtn.disabled = true;
+    try {
+      await apiLogin(email, password);
+      window.location.href = "dashboard.html";
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.classList.remove("hidden");
+      loginBtn.disabled = false;
     }
-    window.location.href = "dashboard.html";
   });
 </script>
 

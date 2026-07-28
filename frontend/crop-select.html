@@ -170,6 +170,7 @@
 
 <script src="js/store.js"></script>
 <script>
+  requireAuth();
   const crops = [
     { en: "Apple",      emoji: "🍎", color: "#d62828", cat: "fruit", label: "Fruit" },
     { en: "Grape",      emoji: "🍇", color: "#5a189a", cat: "fruit", label: "Fruit" },
@@ -419,22 +420,27 @@
     addCropBtn.classList.toggle("ready", !addCropBtn.disabled);
   }
 
-  addCropBtn.addEventListener("click", () => {
+  addCropBtn.addEventListener("click", async () => {
     if (addCropBtn.disabled) return;
     const growingEnvironment = document.querySelector('input[name="growingEnvironment"]:checked').value;
     const purposeChoice = document.querySelector('input[name="purposeChoice"]:checked').value;
-    const crop = {
-      id: `crop_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      name: selected.en,
-      emoji: selected.emoji,
-      color: selected.color,
-      growingEnvironment,
-      purposeOverride: purposeChoice,
-      harvestDate: harvestDate.value,
-    };
-    addCrop(crop);
-    resetForm();
-    renderRegisteredCrops();
+    addCropBtn.disabled = true;
+    try {
+      // The server assigns the crop id.
+      await addCrop({
+        name: selected.en,
+        emoji: selected.emoji,
+        color: selected.color,
+        growingEnvironment,
+        purposeOverride: purposeChoice,
+        harvestDate: harvestDate.value,
+      });
+      resetForm();
+      await renderRegisteredCrops();
+    } catch (err) {
+      alert(err.message);
+      validateForm();
+    }
   });
 
   function resetForm() {
@@ -460,16 +466,16 @@
     return crop.purposeOverride === "sale" ? "Sale" : "Self-consumption";
   }
 
-  function renderRegisteredCrops() {
-    const registered = getCrops();
+  async function renderRegisteredCrops() {
+    const registered = await getCrops();
     cropCount.textContent = registered.length ? `${registered.length} REGISTERED` : "";
     emptyState.classList.toggle("hidden", registered.length > 0);
     registeredList.innerHTML = registered.map((crop) => `
       <div class="flex items-center gap-[0.8rem] bg-card border border-border rounded-2xl px-4 py-[0.75rem]">
-        <div class="w-[2.2rem] h-[2.2rem] rounded-full flex items-center justify-center text-[1.2rem] shrink-0" style="background:${crop.color}">${crop.emoji}</div>
+        <div class="w-[2.2rem] h-[2.2rem] rounded-full flex items-center justify-center text-[1.2rem] shrink-0" style="background:${escapeHtml(crop.color)}">${escapeHtml(crop.emoji)}</div>
         <div class="flex-1 min-w-0">
-          <div class="text-[0.9rem] font-bold">${crop.name}</div>
-          <div class="text-[0.72rem] text-muted">${crop.growingEnvironment === "greenhouse" ? "Greenhouse" : "Open field"} · ${purposeLabel(crop)} · Harvest ${crop.harvestDate}</div>
+          <div class="text-[0.9rem] font-bold">${escapeHtml(crop.name)}</div>
+          <div class="text-[0.72rem] text-muted">${crop.growingEnvironment === "greenhouse" ? "Greenhouse" : "Open field"} · ${purposeLabel(crop)} · Harvest ${escapeHtml(crop.harvestDate || "—")}</div>
         </div>
         <a href="diagnose.html?cropId=${crop.id}&crop=${encodeURIComponent(crop.name)}&color=${encodeURIComponent(crop.color)}&emoji=${encodeURIComponent(crop.emoji)}" class="text-[0.76rem] font-bold text-accent-dark shrink-0">Diagnose →</a>
       </div>

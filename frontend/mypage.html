@@ -101,6 +101,19 @@
           </div>
           <input type="checkbox" id="notifToggle" class="w-5 h-5 accent-accent cursor-pointer">
         </label>
+
+        <!-- Only rendered for the admin account (profile.role === "admin") -->
+        <a id="adminCard" href="admin.html" class="hidden items-center justify-between bg-card border border-accent/60 rounded-3xl p-4 mt-6 shadow-xs hover:border-accent transition-colors">
+          <div>
+            <div class="text-[0.88rem] font-bold text-ink">🛠️ Admin dashboard</div>
+            <div class="text-[0.76rem] text-muted font-medium">View users, usage, and daily limits</div>
+          </div>
+          <span class="text-accent-dark font-extrabold">→</span>
+        </a>
+
+        <button type="button" id="signOutBtn" class="w-full border border-danger/40 rounded-2xl py-3 mt-6 text-[0.88rem] font-extrabold bg-card text-danger cursor-pointer hover:bg-danger-soft transition-colors shadow-xs">
+          Sign out
+        </button>
       </div>
 
       <!-- Crops Section -->
@@ -119,22 +132,40 @@
 
 <script src="js/store.js"></script>
 <script>
-  const profile = getProfile() || { email: "guest@agrisage.app", certification: "conventional", purpose: "self_consumption" };
-  document.getElementById("profileEmail").textContent = profile.email;
-  document.querySelector(`input[name="certification"][value="${profile.certification}"]`).checked = true;
-  document.querySelector(`input[name="purpose"][value="${profile.purpose}"]`).checked = true;
+  requireAuth();
 
-  document.getElementById("profileForm").addEventListener("submit", (e) => {
+  document.getElementById("signOutBtn").addEventListener("click", logout);
+
+  (async () => {
+    const profile = await getProfile();
+    document.getElementById("profileEmail").textContent = profile.email;
+    document.querySelector(`input[name="certification"][value="${profile.certification}"]`).checked = true;
+    document.querySelector(`input[name="purpose"][value="${profile.purpose}"]`).checked = true;
+    if (profile.role === "admin") {
+      const adminCard = document.getElementById("adminCard");
+      adminCard.classList.remove("hidden");
+      adminCard.classList.add("flex");
+    }
+  })();
+
+  document.getElementById("profileForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
-    saveProfile({
-      email: profile.email,
-      certification: form.querySelector('input[name="certification"]:checked').value,
-      purpose: form.querySelector('input[name="purpose"]:checked').value,
-    });
-    const note = document.getElementById("savedNote");
-    note.classList.remove("hidden");
-    setTimeout(() => note.classList.add("hidden"), 1800);
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    try {
+      await saveProfile({
+        certification: form.querySelector('input[name="certification"]:checked').value,
+        purpose: form.querySelector('input[name="purpose"]:checked').value,
+      });
+      const note = document.getElementById("savedNote");
+      note.classList.remove("hidden");
+      setTimeout(() => note.classList.add("hidden"), 1800);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      submitBtn.disabled = false;
+    }
   });
 
   const cropList = document.getElementById("cropList");
@@ -145,16 +176,16 @@
     return crop.purposeOverride === "sale" ? "Sale" : "Self-consumption";
   }
 
-  function renderCrops() {
-    const crops = getCrops();
+  async function renderCrops() {
+    const crops = await getCrops();
     emptyCrops.classList.toggle("hidden", crops.length > 0);
     cropList.innerHTML = crops.map((crop) => `
       <div class="bg-card border border-border rounded-2xl px-4 py-[0.75rem]">
         <div class="flex items-center gap-[0.8rem]">
-          <div class="w-[2.2rem] h-[2.2rem] rounded-full flex items-center justify-center text-[1.2rem] shrink-0" style="background:${crop.color}">${crop.emoji}</div>
+          <div class="w-[2.2rem] h-[2.2rem] rounded-full flex items-center justify-center text-[1.2rem] shrink-0" style="background:${escapeHtml(crop.color)}">${escapeHtml(crop.emoji)}</div>
           <div class="flex-1 min-w-0">
-            <div class="text-[0.9rem] font-bold">${crop.name}</div>
-            <div class="text-[0.72rem] text-muted">${crop.growingEnvironment === "greenhouse" ? "Greenhouse" : "Open field"} · ${purposeLabel(crop)} · Harvest ${crop.harvestDate}</div>
+            <div class="text-[0.9rem] font-bold">${escapeHtml(crop.name)}</div>
+            <div class="text-[0.72rem] text-muted">${crop.growingEnvironment === "greenhouse" ? "Greenhouse" : "Open field"} · ${purposeLabel(crop)} · Harvest ${escapeHtml(crop.harvestDate || "—")}</div>
           </div>
           <button type="button" class="edit-btn text-[0.76rem] font-bold text-accent-dark shrink-0" data-id="${crop.id}">Edit</button>
           <button type="button" class="delete-btn text-[0.76rem] font-bold text-danger shrink-0" data-id="${crop.id}">Delete</button>
@@ -184,7 +215,7 @@
               Sale
             </label>
           </div>
-          <input type="date" id="harvest-${crop.id}" value="${crop.harvestDate}" class="w-full border border-border rounded-xl px-3 py-[0.55rem] text-[0.8rem] bg-card text-ink outline-none focus:border-accent">
+          <input type="date" id="harvest-${crop.id}" value="${crop.harvestDate || ""}" class="w-full border border-border rounded-xl px-3 py-[0.55rem] text-[0.8rem] bg-card text-ink outline-none focus:border-accent">
           <button type="button" class="save-btn w-full border-none rounded-xl py-[0.6rem] text-[0.8rem] font-bold bg-accent text-white cursor-pointer" data-id="${crop.id}">Save crop</button>
         </div>
       </div>
@@ -198,22 +229,35 @@
       });
     });
     cropList.querySelectorAll(".delete-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        removeCrop(btn.dataset.id);
-        renderCrops();
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try {
+          await removeCrop(btn.dataset.id);
+          await renderCrops();
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+        }
       });
     });
     cropList.querySelectorAll(".save-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
         const growingEnvironment = document.querySelector(`input[name="env-${id}"]:checked`).value;
         const purposeChoice = document.querySelector(`input[name="purpose-${id}"]:checked`).value;
         const harvestDate = document.getElementById(`harvest-${id}`).value;
-        const crops = getCrops().map((c) => c.id === id
-          ? { ...c, growingEnvironment, purposeOverride: purposeChoice === "account_default" ? null : purposeChoice, harvestDate }
-          : c);
-        saveCrops(crops);
-        renderCrops();
+        btn.disabled = true;
+        try {
+          await updateCrop(id, {
+            growingEnvironment,
+            purposeOverride: purposeChoice === "account_default" ? null : purposeChoice,
+            harvestDate,
+          });
+          await renderCrops();
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+        }
       });
     });
   }

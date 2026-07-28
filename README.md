@@ -76,22 +76,25 @@ model and a structured knowledge base, grounded to prevent hallucination.
 ```
 .
 ├── backend/                # Flask server (deployment + model integration)
-│   ├── app.py              # App entry point, static serving + /api/diagnose
+│   ├── app.py              # App entry point: static serving + auth/profile/crops/diagnose/history/admin API
+│   ├── auth.py             # JWT issue/verify + password hashing + require_auth/require_admin
+│   ├── db/                 # SQLite schema & queries (users, crops, diagnoses)
 │   ├── requirements.txt
-│   └── models/             # Diagnostic model code/weights (to be integrated)
+│   └── models/             # Diagnostic model code/weights
 ├── frontend/               # Static screens (Mobile-first), styled with Tailwind CSS
 │   ├── landing.html        # Start screen ("/"), service introduction + "Log in" button
-│   ├── login.html          # Login form (submits to dashboard.html)
-│   ├── signup.html         # Signup + certification (conventional/organic) & purpose (self-consumption/sale)
+│   ├── login.html          # Real login (POST /api/login → JWT); admin logs in here too
+│   ├── signup.html         # Signup (POST /api/signup) + certification (conventional/organic) & purpose (self-consumption/sale)
 │   ├── dashboard.html      # Home after login: registered crops, diagnosis CTA, follow-up banner
 │   ├── crop-select.html    # Crop registration: 14 crops + environment/purpose/expected harvest date
 │   ├── diagnose.html       # Photo upload (includes camera tips) → redirects to diagnosis-result.html
 │   ├── diagnosis-result.html # Diagnosis result: status lights (🟢🟡🔴), cause/description, tailored recommendation, PHI banner
 │   ├── follow-up.html      # Post-treatment follow-up checklist (3 questions) → branches results
 │   ├── history.html        # Past diagnosis history list → reuses result page in history mode
-│   ├── mypage.html         # Profile edit, crop management (edit/delete), notification settings
+│   ├── mypage.html         # Profile edit, crop management (edit/delete), sign out, admin-page link (admins)
+│   ├── admin.html          # Admin dashboard: per-user info/usage + daily-limit editor
 │   ├── index.html          # (Guest only) Home: diagnosis start CTA, 4-step flow, differentiator cards
-│   ├── js/store.js         # localStorage-based mock profile/crop/history + mock AI diagnosis
+│   ├── js/store.js         # API layer: JWT helpers + fetch-backed profile/crops/history/diagnosis
 │   ├── js/pwa.js           # Service worker registration (included in all pages)
 │   ├── sw.js                # Service worker: offline caching (pre-caches all pages)
 │   ├── manifest.webmanifest # PWA manifest (app name/icons/theme color)
@@ -116,7 +119,7 @@ Start Screen → Login/Signup → Dashboard → Register Crop → Upload Photo
   → Diagnosis Result (Status Light + Explanation + Recommendation) → Follow-up Checklist → (Re-view in History)
 ```
 
-Users can try out the existing `index.html` (simple home) flow without logging in by selecting "Continue as guest" on the `landing.html` screen. After logging in/signing up, `dashboard.html` serves as the home screen, displaying registered crops and post-treatment follow-up alerts.
+Guests can browse `index.html` (simple home) via "Continue as guest" on the `landing.html` screen, but every data screen and API requires an account — diagnosis itself is login-only (the per-user daily limit needs an identity). After logging in/signing up, `dashboard.html` serves as the home screen, displaying registered crops and post-treatment follow-up alerts.
 
 Logged-in screens (Dashboard, Crop Registration, Diagnosis, Result, Follow-up, History, Profile) share a common header (Logo + Home, Diagnose, History, Profile tabs) applied across all pages for a consistent navigation experience.
 
@@ -129,9 +132,13 @@ Logged-in screens (Dashboard, Crop Registration, Diagnosis, Result, Follow-up, H
   - If the severity is "very high", the status is marked red (🔴) regardless of confidence.
 - Crops grown for "sale" will display an emphasized PHI (Pre-Harvest Interval) safety banner on the diagnosis result page.
 
-### Mock Data
+### Accounts, Auth & Daily Limits
 
-Since the backend does not yet integrate actual models or databases, `frontend/js/store.js` mocks profiles, crops, and diagnostic history using `localStorage`, and `mockDiagnose()` returns simulated diagnostic results. Once the actual API is ready, these mock functions can be replaced with `fetch()` calls (refer to `CLAUDE.md` for endpoint candidates).
+Signup/login are real: the server stores accounts (pbkdf2-hashed passwords) in SQLite and issues a **JWT (7-day expiry)** that `frontend/js/store.js` keeps in localStorage and sends as `Authorization: Bearer` on every API call. Profiles, crops, and diagnosis history all live server-side, scoped per user.
+
+Each user may run **3 diagnoses per day** by default (KST midnight reset). An **admin account** — credentials from the `ADMIN_ID` / `ADMIN_PASSWORD` environment variables, seeded at server start — sees an "Admin dashboard" button in the profile page (`admin.html`), listing every user's info and usage and allowing per-user daily-limit changes (0 blocks a user; unlimited removes the cap).
+
+Note: on Cloud Run the container filesystem is in-memory, so accounts and history reset whenever the instance scales to zero — an accepted demo limitation (the admin account is re-seeded automatically).
 
 ## Hybrid (Web + App)
 
@@ -196,7 +203,7 @@ Then change these — the defaults will not run this service:
 | CPU | 2 | matches the `OMP_NUM_THREADS=2` baked into the image |
 | Max concurrent requests | 4–8 | the default 80 just queues behind one gunicorn worker |
 | Request timeout | 300s | the first request also pays the lazy model load |
-| Variables & Secrets | `OPENAI_API_KEY` | the only secret — `MODEL_*` paths are baked in |
+| Variables & Secrets | `OPENAI_API_KEY`, `JWT_SECRET`, `ADMIN_ID`, `ADMIN_PASSWORD` | all four secrets — `MODEL_*` paths are baked in |
 
 Memory/CPU/concurrency live under **Containers → Settings** on the create form
 and can be edited later via "Edit & deploy new revision". Every push to the
@@ -206,15 +213,18 @@ installed); if it ever fails with `TIMEOUT`, raise the timeout on the trigger
 Cloud Run generated in Cloud Build.
 
 Note that the container filesystem is in-memory on Cloud Run: uploaded photos
-(`backend/uploads/`) and the SQLite DB count against the 2 GiB and are lost when
-the instance scales to zero. That is fine for the demo — the history UI keeps
-its records in localStorage.
+(`backend/uploads/`) and the SQLite DB — including every account, crop, and
+diagnosis record — count against the 2 GiB and are lost when the instance
+scales to zero. Accepted demo limitation; the admin account is re-seeded from
+env at every boot.
 
 **One-off deploy from the CLI (alternative).** With the `gcloud` CLI
 authenticated and a project selected:
 
 ```bash
 export OPENAI_API_KEY=sk-...            # never committed
+export JWT_SECRET=...                   # python -c "import secrets; print(secrets.token_hex(32))"
+export ADMIN_ID=... ADMIN_PASSWORD=...
 ./scripts/deploy-cloudrun.sh           # SERVICE / REGION overridable via env
 ```
 
@@ -239,5 +249,5 @@ npm run watch     # Auto-rebuilds on file changes (keep running during developme
 
 ## Notes
 
-- These pages serve as a prototype/demo. Integration with actual image classification models, disease-treatment mapping DBs, or PLS data is not implemented in this mockup.
+- This is a demo service: the trained classifier, RAG knowledge base, LLM explanation, JWT auth, and per-user storage are all wired end-to-end, but persistence is SQLite on an ephemeral filesystem in production (see the Cloud Run note above).
 - For PRD and technical requirements, please refer to the team documentation.
