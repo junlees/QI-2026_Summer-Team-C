@@ -141,6 +141,7 @@ GoogLeNet은 `googlenet_loss`(aux 포함)+SGD(StepLR), ViT는 `cross_entropy`(la
 
 - **`torch.load(..., weights_only=False)`** 필수(`test.py`, `base/base_trainer.py`). 체크포인트에 `ConfigParser` 객체가 함께 저장되는데 PyTorch 2.6+ 기본값 `weights_only=True`가 이를 거부한다.
 - `utils/util.py`의 `MetricTracker`는 `.loc[key, col]` 방식으로 갱신한다(최신 pandas의 chained-assignment `FutureWarning` 폭주 회피).
+- **`utils/util.py`의 `pandas` import는 `MetricTracker.__init__` 안 지연 import다 — 모듈 최상단으로 되돌리지 말 것.** 추론 경로가 `backend/ai/pipeline.py` → `predict` → `model.model` → `base/__init__` → `base_trainer` → `logger` → `utils` 순으로 이 모듈을 끌어오는데, 배포 컨테이너(`backend/requirements.txt`)에는 학습 전용 패키지인 pandas가 없다. 최상단 import면 Cloud Run에서 `_load_classifier()`가 `ModuleNotFoundError`로 죽어 **모든 진단이 500**이 된다(env1엔 pandas가 있어 로컬에선 멀쩡해 보인다). 학습 전용 패키지를 이 체인의 모듈에 새로 추가할 때도 같은 규칙을 지킬 것 — 검증은 `ai.pipeline.classify_image()`를 한 번 돌린 뒤 requirements.txt에 없는 패키지가 `sys.modules`에 들어왔는지 보면 된다.
 - 데이터셋을 새로 나누면 **반드시 재학습**한다. 기존 모델을 새 test로 평가하면 그 test가 이전 train에 포함됐을 수 있어 누수가 된다.
 - **data_dir 경로 불일치**: `config.json`~`config5`는 `/mnt/d/Project/QI/AgriSage/dataset/`를, `config6`~(config6/config_vit6/config_vit6_scratch)는 repo `backend/models/dataset/`를 가리킨다. 데이터셋이 두 위치에 나뉘어 있고 **prepared6은 repo에만** 있으니, 새 config를 만들 땐 데이터가 실제 있는 경로를 확인할 것.
 - **StepLR 단축 학습 함정**: `epochs`와 `step_size`가 같으면(예: config4의 epochs 10·step_size 10) LR 감쇠가 마지막 에폭 뒤에 걸려 학습 중 **한 번도 적용되지 않는다**(사실상 lr 고정). 짧게 돌릴 땐 step_size를 줄일 것(config6은 step 4로 조정).

@@ -17,10 +17,16 @@ RUN npm run build      # -> /app/frontend/css/styles.css
 # --- Stage 2: Python runtime --------------------------------------------------
 FROM python:3.12-slim AS app
 
+# OMP_NUM_THREADS: torch sizes its thread pool from the *host* core count, which
+# on Cloud Run is far higher than the container's vCPU limit — left unset it
+# oversubscribes and both slows inference down and inflates memory. 2 matches the
+# recommended 2-vCPU service setting.
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PORT=8080 \
+    OMP_NUM_THREADS=2 \
+    MKL_NUM_THREADS=2 \
     MODEL_CHECKPOINT_PATH=backend/models/weights/classification_model.pth \
     MODEL_CONFIG_PATH=backend/models/config6.json
 
@@ -48,4 +54,7 @@ COPY --from=frontend-build /app/frontend/css/styles.css frontend/css/styles.css
 
 EXPOSE 8080
 # exec so gunicorn replaces the shell and receives Cloud Run's SIGTERM directly.
-CMD ["sh", "-c", "exec gunicorn --chdir backend --workers 1 --timeout 120 --bind 0.0.0.0:${PORT:-8080} app:app"]
+# workers 1 (the torch model must not be loaded once per process on a 2Gi
+# instance) + threads 4, so requests parked on an OpenAI call don't block the
+# rest — a single sync worker would serialize every concurrent diagnosis.
+CMD ["sh", "-c", "exec gunicorn --chdir backend --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:${PORT:-8080} app:app"]

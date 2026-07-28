@@ -45,21 +45,46 @@ Optional overrides: `OPENAI_MODEL` (default `gpt-4o-mini`),
 Run as it runs in production (Google Cloud Run — a container built from the
 repo-root `Dockerfile`):
 ```bash
-gunicorn --chdir backend --workers 1 --timeout 120 --bind 0.0.0.0:$PORT app:app
+gunicorn --chdir backend --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT app:app
 ```
 The `Dockerfile` is multi-stage: a Node stage builds the Tailwind CSS, then a
 Python stage installs **CPU-only torch first** (the default PyPI wheel bundles
 CUDA and is far too large for the image), then `backend/requirements.txt`, and
 copies the built frontend in. Cloud Run injects `$PORT` (8080) and gunicorn
-binds to it. `MODEL_CHECKPOINT_PATH`/`MODEL_CONFIG_PATH` are baked into the
-image as `ENV`; `OPENAI_API_KEY` must be supplied at deploy time and is never
-committed. **Production deploys via Cloud Run's GitHub continuous deployment**:
-in the Cloud Run console, connect this repo with Build Type "Dockerfile" (region
-`us-central1`), set `OPENAI_API_KEY` under Variables & Secrets (the `MODEL_*`
-paths are baked into the image), and every push to the connected branch triggers
-a Cloud Build + redeploy — no local Docker or `gcloud` needed.
-`./scripts/deploy-cloudrun.sh` (wrapping `gcloud run deploy --source .`) remains
-a one-off CLI alternative — export `OPENAI_API_KEY` in your shell first.
+binds to it. One worker (the torch model must not be loaded once per process on
+a 2Gi instance) with 4 threads, and `OMP_NUM_THREADS=2` so torch doesn't size
+its thread pool from the host's core count instead of the container's vCPU
+limit. `MODEL_CHECKPOINT_PATH`/`MODEL_CONFIG_PATH` are baked into the image as
+`ENV`; `OPENAI_API_KEY` must be supplied at deploy time and is never committed.
+
+**Production deploys via Cloud Run's GitHub continuous deployment.** In the
+Cloud Run console: 서비스 만들기 → "저장소에서 지속적 배포" → Cloud Build /
+Developer Connect → this GitHub repo → branch → Build Type **Dockerfile**,
+source location `/Dockerfile`. The settings that are NOT defaults and that the
+service will not run without:
+
+| Console field | Value | Why |
+|---|---|---|
+| 인증 | 공개 액세스 허용 (allow unauthenticated) | otherwise every request is 403 |
+| 리전 | `asia-northeast3` (Seoul) | the console defaults to `europe-west1` |
+| 메모리 | **2 GiB** | the 512 MiB default OOM-kills torch on the first diagnosis |
+| CPU | 2 | matches the baked `OMP_NUM_THREADS=2` |
+| 최대 동시 요청 수 | 4–8 | the default 80 just queues behind one gunicorn worker |
+| 요청 시간 초과 | 300s | first request also pays the lazy model load |
+| 변수 & 보안 비밀 | `OPENAI_API_KEY` | the only secret; `MODEL_*` are baked in |
+
+Every push to the connected branch then triggers a Cloud Build + redeploy — no
+local Docker or `gcloud` needed. The build takes ~10 min (torch is ~800 MB
+installed); if it fails with `TIMEOUT`, raise the generated trigger's timeout in
+Cloud Build. `./scripts/deploy-cloudrun.sh` (wrapping `gcloud run deploy
+--source .`) remains a one-off CLI alternative — export `OPENAI_API_KEY` in your
+shell first; it already passes the table's values as flags.
+
+The container filesystem on Cloud Run is **in-memory**, so `backend/uploads/`
+and `backend/db/agrisage.db` count against the 2 GiB and vanish when the
+instance scales to zero. Fine for the demo (history lives in localStorage
+anyway), but don't build a feature on server-side persistence without moving it
+to GCS/Cloud SQL first.
 
 Quick public demo from a dev machine (no Cloud Run): run the dev server, then
 `cloudflared tunnel --url http://localhost:5000` — gives a temporary public
@@ -109,7 +134,10 @@ backend/           Flask app — serves frontend/ as static files, hosts the API
                         plus pls.py's rule-based product/PHI suggestion.
                     Class names come from a classes.json next to the
                     checkpoint (or MODEL_CLASSES_PATH) so inference does not
-                    need the training dataset on disk.
+                    need the training dataset on disk. The lazy load is behind
+                    a double-checked lock — gunicorn runs several threads, and
+                    simultaneous first requests each building their own model
+                    is an OOM on a 2Gi Cloud Run instance, not just waste.
     llm/client.py   OpenAI SDK wrapper: generate_text (json_mode adds a
                     system message + response_format json_object),
                     generate_json (fence-tolerant), embed_text,
@@ -156,7 +184,14 @@ backend/           Flask app — serves frontend/ as static files, hosts the API
                     <stem>_leaf.jpg crops. No cleanup job yet.
   requirements.txt  flask, gunicorn, openai>=2.0, python-dotenv, numpy,
                     torch/torchvision (CPU wheels in prod), pillow,
-                    opencv-python-headless.
+                    opencv-python-headless. Deliberately NO training-only
+                    packages (pandas, tensorboard, ...): the inference import
+                    chain pipeline -> predict -> model.model -> base -> logger
+                    -> utils must stay importable with just this list, which
+                    is why models/utils/util.py imports pandas lazily. A
+                    module-level import there makes every /api/diagnose in
+                    production return the friendly 500 while dev machines
+                    (conda env1 has pandas) look fine.
 frontend/           Static HTML + Tailwind CSS, no JS framework.
   landing.html        Entry page ("/"). "Log in" CTA -> login.html, plus
                       "Continue as guest" -> index.html.
@@ -228,15 +263,20 @@ Dockerfile          Cloud Run container: Node stage builds the Tailwind CSS,
                     Python stage installs CPU torch + backend/requirements.txt
                     and copies the built frontend. Bakes
                     MODEL_CHECKPOINT_PATH/MODEL_CONFIG_PATH as ENV (pointing
-                    at the committed weights/config6) and runs gunicorn bound
-                    to $PORT. OPENAI_API_KEY is supplied at deploy time.
+                    at the committed weights/config6) plus OMP/MKL_NUM_THREADS=2,
+                    and runs gunicorn (1 worker, 4 threads) bound to $PORT.
+                    OPENAI_API_KEY is supplied at deploy time.
 .dockerignore       Keeps the build context small (excludes .venv,
-                    node_modules, generated CSS, uploads, the SQLite db, and
-                    .env) — but NOT the committed model weights.
+                    node_modules, generated CSS, uploads, the SQLite db, .env,
+                    and the training-only models/dataset + models/saved) — but
+                    NOT the committed model weights.
 scripts/
   deploy-cloudrun.sh  Wraps `gcloud run deploy --source .` (Cloud Build builds
                     the Dockerfile — no local Docker). Reads OPENAI_API_KEY
-                    from the shell; SERVICE/REGION overridable via env.
+                    from the shell; SERVICE/REGION overridable via env
+                    (default asia-northeast3). Passes the same memory/CPU/
+                    concurrency/timeout values as the console table in
+                    "Commands".
 ```
 
 **Path convention**: `backend/app.py` resolves `frontend/` relative to its own

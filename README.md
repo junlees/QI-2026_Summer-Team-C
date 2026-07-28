@@ -183,12 +183,32 @@ Production runs as a container built from the repo-root `Dockerfile`.
 
 **Continuous deployment from GitHub (recommended).** In the Cloud Run console,
 create the service with **"Continuously deploy from a repository (source or
-function)"**, connect this GitHub repo, and set **Build Type: Dockerfile**
-(source location `/Dockerfile`, repo root). Pick region `us-central1`. Under
-**Variables & Secrets**, add `OPENAI_API_KEY` (the `MODEL_CHECKPOINT_PATH` /
-`MODEL_CONFIG_PATH` paths are already baked into the image). Every push to the
+function)"**, connect this GitHub repo and the branch you deploy from, and set
+**Build Type: Dockerfile** (source location `/Dockerfile`, repo root).
+
+Then change these — the defaults will not run this service:
+
+| Console field | Value | Why |
+|---|---|---|
+| Authentication | **Allow public access** | otherwise every request is 403 |
+| Region | `asia-northeast3` (Seoul) | the form defaults to `europe-west1` |
+| Memory | **2 GiB** | the 512 MiB default OOM-kills torch on the first diagnosis |
+| CPU | 2 | matches the `OMP_NUM_THREADS=2` baked into the image |
+| Max concurrent requests | 4–8 | the default 80 just queues behind one gunicorn worker |
+| Request timeout | 300s | the first request also pays the lazy model load |
+| Variables & Secrets | `OPENAI_API_KEY` | the only secret — `MODEL_*` paths are baked in |
+
+Memory/CPU/concurrency live under **Containers → Settings** on the create form
+and can be edited later via "Edit & deploy new revision". Every push to the
 connected branch then triggers a Cloud Build + redeploy — no local Docker or
-`gcloud` needed.
+`gcloud` needed. The build takes roughly 10 minutes (torch is ~800 MB
+installed); if it ever fails with `TIMEOUT`, raise the timeout on the trigger
+Cloud Run generated in Cloud Build.
+
+Note that the container filesystem is in-memory on Cloud Run: uploaded photos
+(`backend/uploads/`) and the SQLite DB count against the 2 GiB and are lost when
+the instance scales to zero. That is fine for the demo — the history UI keeps
+its records in localStorage.
 
 **One-off deploy from the CLI (alternative).** With the `gcloud` CLI
 authenticated and a project selected:

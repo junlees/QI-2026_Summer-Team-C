@@ -4,6 +4,7 @@ Pure business logic — no Flask, no DB. app.py calls diagnose() and is
 responsible for persisting the result and returning an HTTP response.
 """
 import os
+import threading
 
 from .llm import explain, level_classifier
 from .rag import store
@@ -13,6 +14,10 @@ CONFIDENCE_THRESHOLD = 70  # percent; below this, hide disease name/recommendati
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 _model_state = {"model": None, "classes": None, "device": None}
+# gunicorn runs one worker with several threads (see Dockerfile), so simultaneous
+# first requests must not each build their own copy of the model — on a 2Gi
+# Cloud Run instance that is an OOM, not just wasted work.
+_model_lock = threading.Lock()
 
 
 def _resolve_path(path):
@@ -56,20 +61,24 @@ def _load_classifier():
 
     import json
 
-    _ensure_models_on_path()
-    import torch
-    import predict as predict_mod
+    with _model_lock:
+        if _model_state["model"] is not None:
+            return _model_state  # another thread finished the load while we waited
 
-    cfg_path = _resolve_path(os.environ.get("MODEL_CONFIG_PATH")) or os.path.join(
-        os.path.dirname(ckpt_path), "config.json"
-    )
-    cfg = json.load(open(cfg_path))
-    classes = _load_classes(cfg, ckpt_path, predict_mod)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = predict_mod.build_model(cfg, ckpt_path, device)
+        _ensure_models_on_path()
+        import torch
+        import predict as predict_mod
 
-    _model_state.update({"model": model, "classes": classes, "device": device, "predict_mod": predict_mod})
-    return _model_state
+        cfg_path = _resolve_path(os.environ.get("MODEL_CONFIG_PATH")) or os.path.join(
+            os.path.dirname(ckpt_path), "config.json"
+        )
+        cfg = json.load(open(cfg_path))
+        classes = _load_classes(cfg, ckpt_path, predict_mod)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = predict_mod.build_model(cfg, ckpt_path, device)
+
+        _model_state.update({"model": model, "classes": classes, "device": device, "predict_mod": predict_mod})
+        return _model_state
 
 
 def _detect_leaf(image_path):

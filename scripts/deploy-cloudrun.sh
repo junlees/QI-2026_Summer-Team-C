@@ -16,12 +16,12 @@
 #
 # Usage:
 #   ./scripts/deploy-cloudrun.sh
-#   SERVICE=agrisage REGION=asia-northeast3 ./scripts/deploy-cloudrun.sh
+#   SERVICE=agrisage REGION=us-central1 ./scripts/deploy-cloudrun.sh
 #
 set -euo pipefail
 
 SERVICE="${SERVICE:-agrisage}"
-REGION="${REGION:-us-central1}"   # Iowa
+REGION="${REGION:-asia-northeast3}"   # Seoul
 
 if [[ -z "${OPENAI_API_KEY:-}" ]]; then
   echo "ERROR: export OPENAI_API_KEY before running (it is never committed)." >&2
