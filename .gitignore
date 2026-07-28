@@ -232,3 +232,6 @@ backend/db/*.db
 # Training dataset (not version-controlled)
 /plantvillage_prepared3/
 
+# Claude Code local state + git worktrees — never version-controlled
+.claude/
+.claude/**

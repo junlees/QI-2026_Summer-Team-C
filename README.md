@@ -179,8 +179,19 @@ gunicorn --chdir backend app:app
 
 ### Deploy to Google Cloud Run
 
-Production runs as a container built from the repo-root `Dockerfile`. With the
-`gcloud` CLI authenticated and a project selected, deploy with:
+Production runs as a container built from the repo-root `Dockerfile`.
+
+**Continuous deployment from GitHub (recommended).** In the Cloud Run console,
+create the service with **"Continuously deploy from a repository (source or
+function)"**, connect this GitHub repo, and set **Build Type: Dockerfile**
+(source location `/Dockerfile`, repo root). Pick region `us-central1`. Under
+**Variables & Secrets**, add `OPENAI_API_KEY` (the `MODEL_CHECKPOINT_PATH` /
+`MODEL_CONFIG_PATH` paths are already baked into the image). Every push to the
+connected branch then triggers a Cloud Build + redeploy — no local Docker or
+`gcloud` needed.
+
+**One-off deploy from the CLI (alternative).** With the `gcloud` CLI
+authenticated and a project selected:
 
 ```bash
 export OPENAI_API_KEY=sk-...            # never committed
