@@ -21,12 +21,16 @@ FROM python:3.12-slim AS app
 # on Cloud Run is far higher than the container's vCPU limit — left unset it
 # oversubscribes and both slows inference down and inflates memory. 2 matches the
 # recommended 2-vCPU service setting.
+# ALLOW_EPHEMERAL_SQLITE makes this image self-contained for disposable demos.
+# Set it to false and provide DATABASE_URL to use persistent PostgreSQL instead.
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PORT=8080 \
     OMP_NUM_THREADS=2 \
     MKL_NUM_THREADS=2 \
+    ALLOW_EPHEMERAL_SQLITE=true \
+    EPHEMERAL_SQLITE_PATH=/tmp/agrisage-demo.db \
     MODEL_CHECKPOINT_PATH=backend/models/weights/classification_model.pth \
     MODEL_CONFIG_PATH=backend/models/config6.json
 

@@ -131,11 +131,11 @@
           alert("Daily limit must be a whole number between 0 and 999.");
           return;
         }
-        saveLimit(Number(btn.dataset.id), value);
+        saveLimit(btn.dataset.id, value);
       });
     });
     userList.querySelectorAll(".unlimited-btn").forEach((btn) => {
-      btn.addEventListener("click", () => saveLimit(Number(btn.dataset.id), null));
+      btn.addEventListener("click", () => saveLimit(btn.dataset.id, null));
     });
   }
 

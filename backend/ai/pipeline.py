@@ -3,6 +3,7 @@
 Pure business logic — no Flask, no DB. app.py calls diagnose() and is
 responsible for persisting the result and returning an HTTP response.
 """
+
 import os
 import threading
 
@@ -20,6 +21,10 @@ _model_state = {"model": None, "classes": None, "device": None}
 _model_lock = threading.Lock()
 
 
+class ModelUnavailableError(RuntimeError):
+    """Raised when the configured classifier checkpoint is unavailable."""
+
+
 def _resolve_path(path):
     """Resolve env-var paths against the repo root so relative values work
     regardless of CWD (repo root, backend/, gunicorn --chdir backend)."""
@@ -27,11 +32,14 @@ def _resolve_path(path):
         return None
     return path if os.path.isabs(path) else os.path.join(_REPO_ROOT, path)
 
+
 def _ensure_models_on_path():
     """Add backend/models to sys.path (idempotent) so its modules import."""
     import sys
 
-    models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+    models_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "models")
+    )
     if models_dir not in sys.path:
         sys.path.insert(0, models_dir)
 
@@ -51,13 +59,15 @@ def _load_classes(cfg, ckpt_path, predict_mod):
 
 
 def _load_classifier():
-    """Lazily load the trained GoogLeNet/ViT checkpoint, if configured."""
+    """Lazily load the configured GoogLeNet/ViT checkpoint."""
     if _model_state["model"] is not None:
         return _model_state
 
     ckpt_path = _resolve_path(os.environ.get("MODEL_CHECKPOINT_PATH"))
-    if not ckpt_path or not os.path.exists(ckpt_path):
-        return None  # no trained checkpoint yet -> classify_image() falls back to mock
+    if not ckpt_path:
+        raise ModelUnavailableError("MODEL_CHECKPOINT_PATH is not configured")
+    if not os.path.isfile(ckpt_path):
+        raise ModelUnavailableError(f"Model checkpoint not found: {ckpt_path}")
 
     import json
 
@@ -77,7 +87,14 @@ def _load_classifier():
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = predict_mod.build_model(cfg, ckpt_path, device)
 
-        _model_state.update({"model": model, "classes": classes, "device": device, "predict_mod": predict_mod})
+        _model_state.update(
+            {
+                "model": model,
+                "classes": classes,
+                "device": device,
+                "predict_mod": predict_mod,
+            }
+        )
         return _model_state
 
 
@@ -94,13 +111,12 @@ def _detect_leaf(image_path):
 
 
 def classify_image(image_path):
-    """Return (class_id, confidence_percent). Falls back to a mock result
-    with a clearly labeled warning if no trained checkpoint is configured yet."""
+    """Return (class_id, confidence_percent)."""
     state = _load_classifier()
-    if state is None:
-        return "Potato___Late_blight", 42.0  # mock, low confidence -> triggers uncertain path
 
-    preds = state["predict_mod"].predict(state["model"], state["classes"], image_path, state["device"], topk=1)
+    preds = state["predict_mod"].predict(
+        state["model"], state["classes"], image_path, state["device"], topk=1
+    )
     class_id, prob = preds[0]
     return class_id, round(prob * 100, 1)
 

@@ -1,64 +1,131 @@
 #!/usr/bin/env bash
 #
-# Deploy AgriSage to Google Cloud Run.
+# Deploy AgriSage to Cloud Run with version-pinned Secret Manager references.
+# The default is a disposable, single-instance SQLite demo with no Cloud SQL.
+# Set EPHEMERAL_DEMO=false to deploy with persistent PostgreSQL instead.
 #
-# Cloud Run builds the repo-root Dockerfile via Cloud Build (`--source .`), so
-# you do NOT need Docker installed locally.
+# Required for both modes:
+#   RUN_SERVICE_ACCOUNT=agrisage-run@PROJECT_ID.iam.gserviceaccount.com
+#   OPENAI_API_KEY_SECRET_REF=agrisage-openai-api-key:1
+#   JWT_SECRET_SECRET_REF=agrisage-jwt-secret:1
+#   ADMIN_ID_SECRET_REF=agrisage-admin-id:1
+#   ADMIN_PASSWORD_SECRET_REF=agrisage-admin-password:1
+#   ADMIN_CONFIG_VERSION=1
 #
-# Prerequisites:
-#   - gcloud CLI installed and authenticated:   gcloud auth login
-#   - a project selected:                        gcloud config set project <PROJECT_ID>
-#   - the required APIs enabled (run once):
-#       gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
-#         artifactregistry.googleapis.com
-#   - secrets exported in your shell (never commit them):
-#       export OPENAI_API_KEY=sk-...
-#       export JWT_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
-#       export ADMIN_ID=admin@agrisage.app ADMIN_PASSWORD=...
+# Persistent mode additionally requires:
+#   EPHEMERAL_DEMO=false
+#   CLOUD_SQL_INSTANCE=PROJECT_ID:REGION:INSTANCE
+#   DATABASE_URL_SECRET_REF=agrisage-database-url:1
 #
-# Usage:
-#   ./scripts/deploy-cloudrun.sh
-#   SERVICE=agrisage REGION=us-central1 ./scripts/deploy-cloudrun.sh
+# DATABASE_URL secret example for a Cloud SQL Unix socket:
+#   postgresql://USER:PERCENT_ENCODED_PASSWORD@/agrisage?host=/cloudsql/PROJECT:REGION:INSTANCE
+#
+# The runtime service account needs roles/secretmanager.secretAccessor on the
+# referenced secrets. Persistent mode also needs roles/cloudsql.client.
 #
 set -euo pipefail
 
 SERVICE="${SERVICE:-agrisage}"
-REGION="${REGION:-asia-northeast3}"   # Seoul
+REGION="${REGION:-asia-northeast3}"
+EPHEMERAL_DEMO="${EPHEMERAL_DEMO:-true}"
 
-for var in OPENAI_API_KEY JWT_SECRET ADMIN_ID ADMIN_PASSWORD; do
+case "${EPHEMERAL_DEMO,,}" in
+  true|1|yes|on) EPHEMERAL_DEMO=true ;;
+  false|0|no|off) EPHEMERAL_DEMO=false ;;
+  *)
+    echo "ERROR: EPHEMERAL_DEMO must be true or false." >&2
+    exit 1
+    ;;
+esac
+
+if [[ "${EPHEMERAL_DEMO}" == "true" ]]; then
+  MAX_INSTANCES="${MAX_INSTANCES:-1}"
+  if [[ "${MAX_INSTANCES}" != "1" ]]; then
+    echo "ERROR: ephemeral demo mode requires MAX_INSTANCES=1." >&2
+    exit 1
+  fi
+else
+  MAX_INSTANCES="${MAX_INSTANCES:-10}"
+fi
+
+required_vars=(
+  RUN_SERVICE_ACCOUNT
+  OPENAI_API_KEY_SECRET_REF
+  JWT_SECRET_SECRET_REF
+  ADMIN_ID_SECRET_REF
+  ADMIN_PASSWORD_SECRET_REF
+  ADMIN_CONFIG_VERSION
+)
+
+if [[ "${EPHEMERAL_DEMO}" == "false" ]]; then
+  required_vars+=(CLOUD_SQL_INSTANCE DATABASE_URL_SECRET_REF)
+fi
+
+for var in "${required_vars[@]}"; do
   if [[ -z "${!var:-}" ]]; then
-    echo "ERROR: export ${var} before running (it is never committed)." >&2
+    echo "ERROR: export ${var} before deploying." >&2
     exit 1
   fi
 done
 
-# Run from the repo root so `--source .` picks up the Dockerfile and all code.
+secret_ref_vars=(
+  OPENAI_API_KEY_SECRET_REF
+  JWT_SECRET_SECRET_REF
+  ADMIN_ID_SECRET_REF
+  ADMIN_PASSWORD_SECRET_REF
+)
+if [[ "${EPHEMERAL_DEMO}" == "false" ]]; then
+  secret_ref_vars+=(DATABASE_URL_SECRET_REF)
+fi
+
+for var in "${secret_ref_vars[@]}"; do
+  if [[ ! "${!var}" =~ :[1-9][0-9]*$ ]]; then
+    echo "ERROR: ${var} must end in a pinned numeric version such as ':1'." >&2
+    exit 1
+  fi
+done
+
+if [[ ! "${ADMIN_CONFIG_VERSION}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: ADMIN_CONFIG_VERSION must be a positive integer." >&2
+  exit 1
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-# Env vars the container needs at runtime. MODEL_* are also baked into the image
-# as defaults; passing them here keeps them explicit/overridable. Add
-# OPENAI_MODEL / OPENAI_EMBEDDING_MODEL to this list to override the defaults.
-ENV_VARS="OPENAI_API_KEY=${OPENAI_API_KEY}"
-ENV_VARS="${ENV_VARS},JWT_SECRET=${JWT_SECRET}"
-ENV_VARS="${ENV_VARS},ADMIN_ID=${ADMIN_ID}"
-ENV_VARS="${ENV_VARS},ADMIN_PASSWORD=${ADMIN_PASSWORD}"
-ENV_VARS="${ENV_VARS},MODEL_CHECKPOINT_PATH=backend/models/weights/classification_model.pth"
-ENV_VARS="${ENV_VARS},MODEL_CONFIG_PATH=backend/models/config6.json"
+SECRETS="OPENAI_API_KEY=${OPENAI_API_KEY_SECRET_REF}"
+SECRETS="${SECRETS},JWT_SECRET=${JWT_SECRET_SECRET_REF}"
+SECRETS="${SECRETS},ADMIN_ID=${ADMIN_ID_SECRET_REF}"
+SECRETS="${SECRETS},ADMIN_PASSWORD=${ADMIN_PASSWORD_SECRET_REF}"
 
-echo "Deploying '${SERVICE}' to Cloud Run in ${REGION} ..."
+database_args=()
+if [[ "${EPHEMERAL_DEMO}" == "true" ]]; then
+  DATABASE_ENV="ALLOW_EPHEMERAL_SQLITE=true,EPHEMERAL_SQLITE_PATH=/tmp/agrisage-demo.db"
+  echo "Deploying disposable single-instance demo '${SERVICE}' in ${REGION} ..."
+else
+  SECRETS="DATABASE_URL=${DATABASE_URL_SECRET_REF},${SECRETS}"
+  DATABASE_ENV="ALLOW_EPHEMERAL_SQLITE=false"
+  database_args=(--set-cloudsql-instances "${CLOUD_SQL_INSTANCE}")
+  echo "Deploying persistent service '${SERVICE}' in ${REGION} ..."
+fi
+
 gcloud run deploy "${SERVICE}" \
   --source . \
   --region "${REGION}" \
   --platform managed \
   --allow-unauthenticated \
+  --service-account "${RUN_SERVICE_ACCOUNT}" \
+  "${database_args[@]}" \
+  --set-secrets "${SECRETS}" \
+  --set-env-vars "ADMIN_CONFIG_VERSION=${ADMIN_CONFIG_VERSION},${DATABASE_ENV}" \
+  --execution-environment gen2 \
   --memory 2Gi \
   --cpu 2 \
   --timeout 300 \
   --concurrency 8 \
-  --set-env-vars "${ENV_VARS}"
+  --max-instances "${MAX_INSTANCES}"
 
 echo
 echo "Done. Service URL:"
 gcloud run services describe "${SERVICE}" --region "${REGION}" \
-  --format 'value(status.url)'
+  --format "value(status.url)"

@@ -1,43 +1,47 @@
-"""JWT auth: password hashing, token issue/verify, and route decorators.
+"""JWT authentication with revocable, database-backed authorization."""
 
-Deliberately DB-free — app.py owns the user lookups; this module only turns a
-user row into a token and a token back into g.user. Keeps the layering clean
-(ai/ never sees auth, auth never sees the DB).
-"""
 import functools
-import logging
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from flask import g, jsonify, request
+from flask import current_app, g, jsonify, request
 from werkzeug.security import check_password_hash, generate_password_hash
 
-JWT_TTL = timedelta(days=7)
-_DEV_SECRET = "dev-insecure-secret"
-_warned_dev_secret = False
 
-logger = logging.getLogger(__name__)
+JWT_TTL = timedelta(days=7)
+JWT_ISSUER = "agrisage"
+JWT_AUDIENCE = "agrisage-api"
+MIN_JWT_SECRET_BYTES = 32
+_INSECURE_EXAMPLE_SECRETS = {
+    "dev-insecure-secret",
+    "your-random-secret-here",
+    "replace-with-at-least-32-random-bytes",
+}
 
 
 def _secret():
-    global _warned_dev_secret
     secret = os.environ.get("JWT_SECRET")
-    if secret:
-        return secret
-    if not _warned_dev_secret:
-        logger.warning(
-            "JWT_SECRET is not set — using an insecure dev fallback. "
-            "Set JWT_SECRET before deploying."
+    if (
+        not secret
+        or not secret.strip()
+        or len(secret.encode("utf-8")) < MIN_JWT_SECRET_BYTES
+        or secret.strip() in _INSECURE_EXAMPLE_SECRETS
+    ):
+        raise RuntimeError(
+            "JWT_SECRET must be a non-example random value containing at least "
+            "32 UTF-8 bytes."
         )
-        _warned_dev_secret = True
-    return _DEV_SECRET
+    return secret
+
+
+def validate_config():
+    """Fail application startup when the signing configuration is unsafe."""
+    _secret()
 
 
 def hash_password(password):
-    # pbkdf2, not werkzeug's scrypt default: scrypt allocates ~32MB per call,
-    # which is unwelcome on a 2Gi Cloud Run instance that already holds torch
-    # and serves 4 gunicorn threads.
     return generate_password_hash(password, method="pbkdf2:sha256")
 
 
@@ -46,42 +50,91 @@ def verify_password(password_hash, password):
 
 
 def issue_token(user):
+    now = datetime.now(timezone.utc)
     payload = {
-        "uid": user["id"],
-        "email": user["email"],
-        "role": user["role"],
-        "exp": datetime.now(timezone.utc) + JWT_TTL,
+        "sub": str(user["public_id"]),
+        "token_version": int(user["token_version"]),
+        "iat": now,
+        "exp": now + JWT_TTL,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+        "jti": str(uuid.uuid4()),
     }
     return jwt.encode(payload, _secret(), algorithm="HS256")
 
 
 def decode_token(token):
-    """Payload dict, or None for an expired/invalid/garbage token."""
+    """Return a validated payload, or None for expired/malformed credentials."""
     try:
-        return jwt.decode(token, _secret(), algorithms=["HS256"])
-    except jwt.InvalidTokenError:  # includes ExpiredSignatureError
+        payload = jwt.decode(
+            token,
+            _secret(),
+            algorithms=["HS256"],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE,
+            options={
+                "require": [
+                    "sub",
+                    "token_version",
+                    "iat",
+                    "exp",
+                    "iss",
+                    "aud",
+                    "jti",
+                ]
+            },
+        )
+        subject = payload["sub"]
+        token_version = payload["token_version"]
+        if not isinstance(subject, str) or str(uuid.UUID(subject)) != subject:
+            return None
+        if type(token_version) is not int or token_version < 0:
+            return None
+        return payload
+    except (jwt.InvalidTokenError, KeyError, TypeError, ValueError):
         return None
 
 
 def _unauthorized():
-    return jsonify({
-        "status": "error",
-        "message": "Authentication required. Please log in.",
-    }), 401
+    return jsonify(
+        {
+            "status": "error",
+            "message": "Authentication required. Please log in.",
+        }
+    ), 401
 
 
 def require_auth(fn):
-    """Reads `Authorization: Bearer <token>` and sets g.user = {uid, email, role}."""
+    """Resolve every bearer token to the current database user and permissions."""
+
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         header = request.headers.get("Authorization", "")
         if not header.startswith("Bearer "):
             return _unauthorized()
-        payload = decode_token(header[len("Bearer "):].strip())
+
+        payload = decode_token(header[len("Bearer ") :].strip())
         if payload is None:
             return _unauthorized()
-        g.user = {"uid": payload["uid"], "email": payload["email"], "role": payload["role"]}
+
+        loader = current_app.config.get("AUTH_USER_LOADER")
+        if not callable(loader):
+            raise RuntimeError("AUTH_USER_LOADER is not configured")
+
+        user = loader(payload["sub"])
+        if user is None or int(user["token_version"]) != payload["token_version"]:
+            return _unauthorized()
+
+        # Authorization data is always current DB state, never a JWT role claim.
+        g.current_user = user
+        g.user = {
+            "uid": user["id"],
+            "public_id": user["public_id"],
+            "email": user["email"],
+            "role": user["role"],
+        }
         return fn(*args, **kwargs)
+
     return wrapper
 
 
@@ -90,6 +143,9 @@ def require_admin(fn):
     @require_auth
     def wrapper(*args, **kwargs):
         if g.user["role"] != "admin":
-            return jsonify({"status": "error", "message": "Admin access required."}), 403
+            return jsonify(
+                {"status": "error", "message": "Admin access required."}
+            ), 403
         return fn(*args, **kwargs)
+
     return wrapper

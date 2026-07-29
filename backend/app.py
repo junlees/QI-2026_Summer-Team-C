@@ -1,9 +1,10 @@
+# ruff: noqa: E402
+
 import datetime
 import json
 import logging
 import os
 import re
-import sqlite3
 import uuid
 
 # Load .env BEFORE anything reads the environment (JWT_SECRET, ADMIN_*,
@@ -21,6 +22,9 @@ from ai import pipeline
 from ai.llm import chat
 from db import crud, models
 
+auth.validate_config()
+models.validate_config()
+
 # Serve the static frontend that lives in ../frontend
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
@@ -33,23 +37,74 @@ PURPOSES = {"self_consumption", "sale"}
 GROWING_ENVIRONMENTS = {"open_field", "greenhouse"}
 EMAIL_RE = re.compile(r"^\S+@\S+\.\S+$")
 DEFAULT_DAILY_LIMIT = 3
+INSECURE_ADMIN_PASSWORDS = {
+    "change-me",
+    "replace-with-a-long-random-password",
+}
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
+app.config["AUTH_USER_LOADER"] = crud.get_user_by_public_id
 models.init_db()
 
 
 def _seed_admin():
-    """Create/refresh the admin account from ADMIN_ID/ADMIN_PASSWORD. Runs at
-    every boot so the account survives Cloud Run's in-memory DB resets and
-    picks up password rotations. Never log the values."""
+    """Apply the monotonic environment-managed admin configuration."""
     admin_id = (os.environ.get("ADMIN_ID") or "").strip()
     admin_password = os.environ.get("ADMIN_PASSWORD") or ""
-    if admin_id and admin_password:
-        crud.upsert_admin(admin_id, auth.hash_password(admin_password))
-    else:
+    admin_config_version = (os.environ.get("ADMIN_CONFIG_VERSION") or "").strip()
+    configured = (bool(admin_id), bool(admin_password), bool(admin_config_version))
+    if any(configured) and not all(configured):
+        raise RuntimeError(
+            "ADMIN_ID, ADMIN_PASSWORD, and ADMIN_CONFIG_VERSION must all be set "
+            "or all be omitted."
+        )
+    if not admin_id:
         logging.getLogger(__name__).warning(
-            "ADMIN_ID/ADMIN_PASSWORD not set; admin account not seeded."
+            "Managed admin configuration not set; admin account not seeded."
+        )
+        return
+    if not EMAIL_RE.fullmatch(admin_id):
+        raise RuntimeError("ADMIN_ID must be a valid email address.")
+    if len(admin_password) < 12 or admin_password.strip() in INSECURE_ADMIN_PASSWORDS:
+        raise RuntimeError(
+            "ADMIN_PASSWORD must be a non-example value with at least 12 characters."
+        )
+    if not re.fullmatch(r"[1-9][0-9]*", admin_config_version):
+        raise RuntimeError("ADMIN_CONFIG_VERSION must be a positive integer.")
+    config_version = int(admin_config_version)
+    if config_version > 9_223_372_036_854_775_807:
+        raise RuntimeError(
+            "ADMIN_CONFIG_VERSION exceeds the signed 64-bit database range."
+        )
+
+    admin_id = admin_id.lower()
+    result = crud.apply_managed_admin_config(
+        admin_id,
+        auth.hash_password(admin_password),
+        config_version,
+    )
+
+    if result["status"] == "stale":
+        logging.getLogger(__name__).warning(
+            "Skipped stale managed-admin config version %s; database is at %s.",
+            config_version,
+            result["stored_version"],
+        )
+        return
+
+    user = result.get("user")
+    matches = (
+        user is not None
+        and user["email"].lower() == admin_id
+        and user["role"] == "admin"
+        and auth.verify_password(user["password_hash"], admin_password)
+    )
+    if not matches:
+        raise RuntimeError(
+            "Managed admin configuration conflicts with the database at the same "
+            "ADMIN_CONFIG_VERSION. Increment ADMIN_CONFIG_VERSION whenever "
+            "ADMIN_ID or ADMIN_PASSWORD changes."
         )
 
 
@@ -69,6 +124,20 @@ def _validate_image(image):
     return filename, None
 
 
+def _remove_upload_artifacts(image_path):
+    """Remove the request upload and detector crop after inference."""
+    stem, _extension = os.path.splitext(image_path)
+    for artifact in (image_path, f"{stem}_leaf.jpg"):
+        try:
+            os.remove(artifact)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            app.logger.warning(
+                "Could not remove temporary upload artifact: %s", artifact
+            )
+
+
 def _parse_harvest_date(raw_value):
     if not raw_value:
         return None, None
@@ -86,15 +155,15 @@ def _profile_response(user):
         "certification": user["certification"],
         "purpose": user["purpose"],
         "daily_limit": user["daily_limit"],
-        "used_today": crud.count_diagnoses_since(user["id"], crud.kst_today_start_utc()),
+        "used_today": crud.count_diagnoses_since(
+            user["id"], crud.kst_today_start_utc()
+        ),
     }
 
 
 def _current_user_or_401():
-    """Fresh users row for the token's uid. None means the row is gone (e.g.
-    Cloud Run reset the in-memory DB after this token was issued) — callers
-    return the 401 to force a clean re-login."""
-    return crud.get_user_by_id(g.user["uid"])
+    """Return the fresh user row already resolved by the auth decorator."""
+    return getattr(g, "current_user", None)
 
 
 _STALE_SESSION = (
@@ -123,33 +192,48 @@ def signup():
     purpose = body.get("purpose") or "self_consumption"
 
     if not EMAIL_RE.match(email):
-        return jsonify({"status": "error", "message": "Please enter a valid email address."}), 400
+        return jsonify(
+            {"status": "error", "message": "Please enter a valid email address."}
+        ), 400
     if len(password) < 8:
-        return jsonify({"status": "error", "message": "Password must be at least 8 characters."}), 400
+        return jsonify(
+            {"status": "error", "message": "Password must be at least 8 characters."}
+        ), 400
     if certification not in CERTIFICATIONS or purpose not in PURPOSES:
-        return jsonify({"status": "error", "message": "Invalid certification or purpose value."}), 400
+        return jsonify(
+            {"status": "error", "message": "Invalid certification or purpose value."}
+        ), 400
 
     try:
-        user_id = crud.create_user(email, auth.hash_password(password), certification, purpose)
-    except sqlite3.IntegrityError:
-        return jsonify({"status": "error", "message": "An account with this email already exists."}), 409
+        user = crud.create_user(
+            email, auth.hash_password(password), certification, purpose
+        )
+    except crud.DuplicateEmailError:
+        return jsonify(
+            {"status": "error", "message": "An account with this email already exists."}
+        ), 409
 
-    user = crud.get_user_by_id(user_id)
-    return jsonify({"token": auth.issue_token(user), "profile": _profile_response(user)}), 201
+    return jsonify(
+        {"token": auth.issue_token(user), "profile": _profile_response(user)}
+    ), 201
 
 
 @app.route("/api/login", methods=["POST"])
 def login():
     body = request.get_json(silent=True) or {}
-    email = (body.get("email") or "").strip()
+    email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
 
     user = crud.get_user_by_email(email)
     # Same message for unknown email and wrong password — no user enumeration.
     if user is None or not auth.verify_password(user["password_hash"], password):
-        return jsonify({"status": "error", "message": "Invalid email or password."}), 401
+        return jsonify(
+            {"status": "error", "message": "Invalid email or password."}
+        ), 401
 
-    return jsonify({"token": auth.issue_token(user), "profile": _profile_response(user)})
+    return jsonify(
+        {"token": auth.issue_token(user), "profile": _profile_response(user)}
+    )
 
 
 @app.route("/api/profile", methods=["GET"])
@@ -172,7 +256,9 @@ def update_profile():
     certification = body.get("certification", user["certification"])
     purpose = body.get("purpose", user["purpose"])
     if certification not in CERTIFICATIONS or purpose not in PURPOSES:
-        return jsonify({"status": "error", "message": "Invalid certification or purpose value."}), 400
+        return jsonify(
+            {"status": "error", "message": "Invalid certification or purpose value."}
+        ), 400
 
     crud.update_user_profile(user["id"], certification, purpose)
     return jsonify(_profile_response(crud.get_user_by_id(user["id"])))
@@ -234,8 +320,13 @@ def add_crop():
     if error:
         return jsonify({"status": "error", "message": error}), 400
     crop = crud.create_crop(
-        g.user["uid"], fields["name"], fields["emoji"], fields["color"],
-        fields["growing_environment"], fields["purpose_override"], fields["harvest_date"],
+        g.user["uid"],
+        fields["name"],
+        fields["emoji"],
+        fields["color"],
+        fields["growing_environment"],
+        fields["purpose_override"],
+        fields["harvest_date"],
     )
     return jsonify(crop), 201
 
@@ -249,9 +340,12 @@ def edit_crop(crop_id):
         return jsonify({"status": "error", "message": error}), 400
 
     updated = crud.update_crop(
-        g.user["uid"], crop_id,
+        g.user["uid"],
+        crop_id,
         growing_environment=fields.get("growing_environment"),
-        purpose_override=fields["purpose_override"] if "purpose_override" in fields else ...,
+        purpose_override=fields["purpose_override"]
+        if "purpose_override" in fields
+        else ...,
         harvest_date=fields.get("harvest_date"),
     )
     if not updated:
@@ -296,16 +390,20 @@ def diagnose():
     if user["daily_limit"] is not None:
         used = crud.count_diagnoses_since(user["id"], crud.kst_today_start_utc())
         if used >= user["daily_limit"]:
-            return jsonify({
-                "status": "error",
-                "message": f"Daily diagnosis limit reached ({user['daily_limit']}/day). "
-                           "Try again tomorrow.",
-            }), 429
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": f"Daily diagnosis limit reached ({user['daily_limit']}/day). "
+                    "Try again tomorrow.",
+                }
+            ), 429
 
     user_input = request.form.get("user_input", "")
     # Server-authoritative personalization: the client no longer sends these —
     # they come from the account and the registered crop.
-    effective_purpose = crop["purpose_override"] or user["purpose"] or "self_consumption"
+    effective_purpose = (
+        crop["purpose_override"] or user["purpose"] or "self_consumption"
+    )
     profile = {
         "certification": user["certification"],
         "growing_environment": crop["growing_environment"],
@@ -314,19 +412,34 @@ def diagnose():
 
     filename = f"{uuid.uuid4().hex}_{safe_filename}"
     image_path = os.path.join(UPLOAD_DIR, filename)
-    image.save(image_path)
 
     try:
+        image.save(image_path)
         result = pipeline.diagnose(
-            image_path, profile=profile, user_input=user_input,
+            image_path,
+            profile=profile,
+            user_input=user_input,
             harvest_date=crop["harvest_date"],
         )
+    except pipeline.ModelUnavailableError as exc:
+        app.logger.error("Diagnosis model unavailable: %s", exc)
+        return jsonify(
+            {
+                "status": "error",
+                "code": "model_unavailable",
+                "message": "The diagnosis model is temporarily unavailable. Please try again later.",
+            }
+        ), 503
     except Exception:
         app.logger.exception("pipeline.diagnose failed for %s", filename)
-        return jsonify({
-            "status": "error",
-            "message": "Analysis failed — the file may not be a valid photo. Please try another image.",
-        }), 500
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Analysis failed — the file may not be a valid photo. Please try another image.",
+            }
+        ), 500
+    finally:
+        _remove_upload_artifacts(image_path)
 
     # Recorded inside result_json (i.e. BEFORE save) so history re-entries can
     # show the purpose used at diagnosis time, not the current profile value.
@@ -341,7 +454,9 @@ def diagnose():
         user_id=user["id"],
         # Healthy/uncertain results have no treatment to follow up on — mark
         # them so the dashboard banner and history badge skip them.
-        follow_up_status="not_needed" if result["status"] in ("healthy", "uncertain") else None,
+        follow_up_status="not_needed"
+        if result["status"] in ("healthy", "uncertain")
+        else None,
     )
     result["diagnosis_id"] = diagnosis_id
     return jsonify(result)
@@ -368,7 +483,12 @@ def diagnose_follow_up(diagnosis_id):
     body = request.get_json(silent=True) or {}
     status = body.get("follow_up_status")
     if status not in ("resolved", "escalate"):
-        return jsonify({"status": "error", "message": "follow_up_status must be resolved or escalate"}), 400
+        return jsonify(
+            {
+                "status": "error",
+                "message": "follow_up_status must be resolved or escalate",
+            }
+        ), 400
     if not crud.set_follow_up_status(g.user["uid"], diagnosis_id, status):
         return jsonify({"status": "error", "message": "Diagnosis not found."}), 404
     return jsonify({"status": "ok"})
@@ -388,8 +508,12 @@ def _shape_history_entry(row):
         disease = result.get("disease") or "Diagnosed"
 
     # Dates are KST — same boundary the daily limit uses.
-    created = datetime.datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S")
-    date_kst = created.replace(tzinfo=datetime.timezone.utc).astimezone(crud.KST)
+    created = row["created_at"]
+    if not isinstance(created, datetime.datetime):
+        created = datetime.datetime.fromisoformat(str(created).replace("Z", "+00:00"))
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=datetime.timezone.utc)
+    date_kst = created.astimezone(crud.KST)
 
     return {
         "id": row["id"],
@@ -413,22 +537,43 @@ def history():
 
 
 # --- admin -------------------------------------------------------------
+def _json_utc_timestamp(value):
+    if value is None:
+        return None
+    if not isinstance(value, datetime.datetime):
+        value = datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=datetime.timezone.utc)
+    return value.astimezone(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 @app.route("/api/admin/users", methods=["GET"])
 @auth.require_admin
 def admin_users():
-    return jsonify(crud.admin_list_users(crud.kst_today_start_utc()))
+    users = crud.admin_list_users(crud.kst_today_start_utc())
+    for user in users:
+        user["created_at"] = _json_utc_timestamp(user["created_at"])
+        user["last_diagnosis_at"] = _json_utc_timestamp(user["last_diagnosis_at"])
+    return jsonify(users)
 
 
-@app.route("/api/admin/users/<int:user_id>/limit", methods=["PUT"])
+@app.route("/api/admin/users/<string:user_public_id>/limit", methods=["PUT"])
 @auth.require_admin
-def admin_set_limit(user_id):
+def admin_set_limit(user_public_id):
     body = request.get_json(silent=True) or {}
     limit = body.get("daily_limit", ...)
     # Strict type check: bool is an int subclass, reject it explicitly.
-    valid = limit is None or (isinstance(limit, int) and not isinstance(limit, bool) and 0 <= limit <= 999)
+    valid = limit is None or (
+        isinstance(limit, int) and not isinstance(limit, bool) and 0 <= limit <= 999
+    )
     if limit is ... or not valid:
-        return jsonify({"status": "error", "message": "daily_limit must be a non-negative integer or null."}), 400
-    if not crud.set_daily_limit(user_id, limit):
+        return jsonify(
+            {
+                "status": "error",
+                "message": "daily_limit must be a non-negative integer or null.",
+            }
+        ), 400
+    if not crud.set_daily_limit(user_public_id, limit):
         return jsonify({"status": "error", "message": "User not found."}), 404
     return jsonify({"status": "ok", "daily_limit": limit})
 

@@ -10,7 +10,7 @@
 # Notes
 #   - The public URL changes every time the tunnel restarts (free quick
 #     tunnels get a random hostname), so re-share it after each start.
-#   - OPENAI_API_KEY is read from the repo-root .env automatically.
+#   - OPENAI_API_KEY and a 32-byte-or-longer JWT_SECRET are read from .env.
 #   - PORT=5001 ./scripts/demo.sh start  runs a second instance elsewhere.
 set -uo pipefail
 
@@ -24,6 +24,9 @@ TUNNEL_PID="$RUN_DIR/tunnel.pid"
 
 export MODEL_CHECKPOINT_PATH="${MODEL_CHECKPOINT_PATH:-backend/models/weights/classification_model.pth}"
 export MODEL_CONFIG_PATH="${MODEL_CONFIG_PATH:-backend/models/config6.json}"
+# A Cloud SQL DATABASE_URL may be present in .env for deployment. The local
+# demo deliberately overrides it with a disposable/local SQLite database.
+export DATABASE_URL="${LOCAL_DATABASE_URL:-sqlite+pysqlite:///$REPO/backend/db/agrisage.db}"
 
 find_python() {
   for p in "${AGRISAGE_PYTHON:-}" \

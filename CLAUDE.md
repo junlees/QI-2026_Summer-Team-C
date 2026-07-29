@@ -12,8 +12,9 @@ check after treatment. A Flask app serves both the static, mobile-first frontend
 and the API. **Everything is wired frontend-to-backend**: JWT signup/login,
 server-stored profiles/crops/diagnosis history, the diagnosis flow with a
 per-user daily limit (default 3/day), and an admin dashboard (account seeded
-from `ADMIN_ID`/`ADMIN_PASSWORD` env) for viewing users/usage and adjusting
-limits. `frontend/js/store.js` is the fetch layer — see "Frontend/backend
+from `ADMIN_ID`/`ADMIN_PASSWORD` plus monotonic `ADMIN_CONFIG_VERSION`) for
+viewing users/usage and adjusting limits. `frontend/js/store.js` is the fetch
+layer — see "Frontend/backend
 boundary" below.
 
 ## Commands
@@ -25,9 +26,9 @@ builds the Tailwind CSS once):
 ./scripts/setup.ps1         # Windows (PowerShell)
 ```
 
-Run the dev server. Two env vars point at the classifier checkpoint — without
-them the pipeline falls back to a mock 42%-confidence prediction that always
-lands in the "uncertain" path (useful for UI work without the model):
+Run the dev server. Two env vars point at the classifier checkpoint. A missing
+checkpoint returns HTTP 503 `model_unavailable`; it never produces a mock
+diagnosis:
 ```bash
 MODEL_CHECKPOINT_PATH=backend/models/weights/classification_model.pth \
 MODEL_CONFIG_PATH=backend/models/config6.json \
@@ -40,12 +41,14 @@ On the primary dev machine use conda `env1`'s python
 `backend/models/CLAUDE.md`.
 
 Secrets: put `OPENAI_API_KEY`, `JWT_SECRET` (token signing — generate with
-`python -c "import secrets; print(secrets.token_hex(32))"`; without it the
-server warns and uses an insecure dev fallback), and `ADMIN_ID`/`ADMIN_PASSWORD`
-(admin account, upserted into the users table at every boot) in a `.env` at the
-repo root or in `backend/.env` (python-dotenv searches parent dirs; see
+`python -c "import secrets; print(secrets.token_hex(32))"`; the server refuses
+to start if it is missing or under 32 UTF-8 bytes), and `ADMIN_ID` /
+`ADMIN_PASSWORD` / `ADMIN_CONFIG_VERSION` in a `.env` at the repo root or in
+`backend/.env` (python-dotenv searches parent dirs; see
 `backend/.env.example`). `app.py` calls `load_dotenv()` explicitly at the very
-top — before anything reads the environment. Optional overrides: `OPENAI_MODEL`
+top — before anything reads the environment. Increment `ADMIN_CONFIG_VERSION`
+whenever either admin credential changes; old Cloud Run revisions with a lower
+version are read-only no-ops. Optional overrides: `OPENAI_MODEL`
 (default `gpt-4o-mini`), `OPENAI_EMBEDDING_MODEL` (default
 `text-embedding-3-small`).
 
@@ -78,23 +81,26 @@ service will not run without:
 | CPU | 2 | matches the baked `OMP_NUM_THREADS=2` |
 | 최대 동시 요청 수 | 4–8 | the default 80 just queues behind one gunicorn worker |
 | 요청 시간 초과 | 300s | first request also pays the lazy model load |
-| 변수 & 보안 비밀 | `OPENAI_API_KEY`, `JWT_SECRET`, `ADMIN_ID`, `ADMIN_PASSWORD` | all four secrets; `MODEL_*` are baked in |
+| 최대 인스턴스 | **1** | disposable SQLite cannot be shared across instances |
+| Cloud SQL | no connection for the demo | `/tmp/agrisage-demo.db` is disposable |
+| 서비스 계정 | dedicated runtime identity | scoped Secret Accessor |
+| Secret Manager | `OPENAI_API_KEY`, `JWT_SECRET`, `ADMIN_ID`, `ADMIN_PASSWORD` | pin numeric versions; `MODEL_*` are baked in |
+| 환경 변수 | positive `ADMIN_CONFIG_VERSION` | bump on each managed-admin rotation |
 
 Every push to the connected branch then triggers a Cloud Build + redeploy — no
 local Docker or `gcloud` needed. The build takes ~10 min (torch is ~800 MB
 installed); if it fails with `TIMEOUT`, raise the generated trigger's timeout in
-Cloud Build. `./scripts/deploy-cloudrun.sh` (wrapping `gcloud run deploy
---source .`) remains a one-off CLI alternative — export all four secrets in your
-shell first (it hard-fails if any is missing); it already passes the table's
-values as flags.
+Cloud Build. `./scripts/deploy-cloudrun.sh` remains a one-off CLI alternative.
+Its default `EPHEMERAL_DEMO=true` mode enforces one maximum instance and requires
+no Cloud SQL. Persistent mode additionally accepts a version-pinned database
+secret and Cloud SQL instance; raw secret values never appear in flags.
 
-The container filesystem on Cloud Run is **in-memory**, so `backend/uploads/`
-and `backend/db/agrisage.db` count against the 2 GiB and vanish when the
-instance scales to zero — **including every user account, crop, and diagnosis
-record** (accepted demo limitation; moving to Cloud SQL/GCS is a separate,
-deliberate task). The admin account is re-seeded from env at every boot, and
-JWTs are stateless so surviving tokens stay *signed*-valid — the API treats a
-token whose user row is gone as a stale session (401 → forced re-login).
+The container filesystem on Cloud Run is **in-memory**. Request uploads and
+detector crops under `backend/uploads/` are removed after each inference attempt.
+The demo's accounts, crops, diagnoses, and sessions disappear when the instance
+stops. Every JWT is still resolved against the current database row, so tokens
+from a replaced instance are rejected. Persistent production sets
+`ALLOW_EPHEMERAL_SQLITE=false` and supplies PostgreSQL `DATABASE_URL`.
 
 Quick public demo from a dev machine (no Cloud Run): run the dev server, then
 `cloudflared tunnel --url http://localhost:5000` — gives a temporary public
@@ -108,7 +114,18 @@ npm run watch       # rebuild on save; keep running while editing HTML/CSS
 `frontend/css/styles.css` is generated and gitignored — after pulling changes
 or editing any `class="..."` in the HTML or `frontend/src/input.css`, it must
 be rebuilt (`npm run build`/`watch`) before the page will look right. There is
-no other build step, test suite, or linter in this repo yet.
+no other frontend build step.
+
+Backend P0 checks:
+```bash
+python -m unittest discover -s backend/tests -v
+ruff format --check backend/app.py backend/auth.py backend/ai/pipeline.py backend/db backend/tests
+ruff check backend/app.py backend/auth.py backend/ai/pipeline.py backend/db backend/tests
+```
+The PostgreSQL integration class is skipped unless
+`TEST_POSTGRES_DATABASE_URL` targets an empty database ending in `_test`.
+`.github/workflows/p0-security.yml` supplies an ephemeral PostgreSQL 16 service
+and runs the full suite on pushes and pull requests.
 
 ## Architecture
 
@@ -153,19 +170,19 @@ backend/           Flask app — serves frontend/ as static files, hosts the API
                       total_count/last_diagnosis_at), PUT
                       /api/admin/users/<id>/limit {daily_limit: 0..999|null}
                       — admin role only (403 otherwise).
-  auth.py          JWT + password layer, deliberately DB-free: PyJWT HS256
-                    tokens {uid,email,role,exp:+7d} signed with JWT_SECRET
-                    (insecure dev fallback + one-time warning if unset),
+  auth.py          JWT + password layer: PyJWT HS256 tokens carry immutable
+                    {sub: public UUID, token_version, iat, exp, iss, aud, jti}.
+                    JWT_SECRET is required and at least 32 bytes,
                     pbkdf2:sha256 hashing (NOT werkzeug's scrypt default —
                     ~32MB/call next to resident torch), require_auth /
-                    require_admin decorators that set g.user.
+                    require_admin load current user/role from DB and set g.user.
   ai/              RAG + LLM diagnosis pipeline (no Flask, no DB).
     pipeline.py     diagnose(image_path, profile, user_input, harvest_date):
                     (1) leaf detection via models/leaf_detect (wrapped so it
                         can never crash the pipeline; falls back to the
                         original image), (2) classify_image() — lazily loads
-                        the checkpoint from MODEL_CHECKPOINT_PATH, else mock
-                        ("Potato___Late_blight", 42.0), (3) KB exact-match
+                        the checkpoint from MODEL_CHECKPOINT_PATH; missing
+                        weights raise model_unavailable/503, (3) KB exact-match
                         lookup by class_id, (4) confidence gate <70 →
                         "uncertain" BEFORE the is_healthy check (order is
                         load-bearing — a low-confidence "healthy" must not
@@ -195,25 +212,24 @@ backend/           Flask app — serves frontend/ as static files, hosts the API
                     caches vectors to rag/data/embeddings_cache.json tagged
                     with the embedding model name — old-format or
                     wrong-model caches re-embed automatically.
-  db/              SQLite persistence (backend/db/agrisage.db, gitignored).
-    models.py       Schema + init_db() (called at app import): users (email
-                    UNIQUE NOCASE, role, certification, purpose, daily_limit
-                    — NULL = unlimited, default 3), crops (per user),
-                    diagnoses (+user_id), follow_up_reminders (still
-                    unwired). init_db() also migrates pre-auth DBs: PRAGMA
-                    table_info → ALTER TABLE adds diagnoses.user_id, THEN
-                    creates the (user_id, created_at) index (order matters —
-                    the index can't go in the executescript'd _SCHEMA).
-                    Legacy rows keep user_id NULL → invisible to everyone.
-    crud.py         Explicit column lists everywhere (no SELECT * — a new
-                    column must never silently leak into an API response).
-                    Users/crops/diagnoses CRUD, upsert_admin,
+  db/              SQLAlchemy Core persistence: disposable SQLite for the
+                    single-instance demo, PostgreSQL for persistent production.
+    models.py       Engine/config validation + Alembic startup upgrade. Cloud
+                    Run SQLite requires explicit ALLOW_EPHEMERAL_SQLITE. Users keep
+                    an internal integer FK plus immutable public UUID and
+                    token_version for revocable authentication. PostgreSQL is
+                    checked for required columns, FKs, and indexes after upgrade.
+    migrations/    Frozen, versioned Alembic schema and legacy SQLite UUID
+                    backfill. 0002 adds monotonic managed-admin state.
+    crud.py         Transactional users/crops/diagnoses CRUD, monotonic admin
+                    rotation/demotion with atomic token_version increments,
                     count_diagnoses_since + kst_today_start_utc() (KST is a
                     fixed +9 offset constant — no DST since 1988, so no
-                    tzdata dependency; returns UTC "YYYY-MM-DD HH:MM:SS" so
-                    a lexical created_at >= compare hits the index),
+                    tzdata dependency; returns an aware UTC datetime),
                     admin_list_users, get_due_follow_ups /
                     mark_follow_up_sent (the last two have no callers yet).
+  tests/           Auth/admin-race/model-unavailable/SQLite migration tests,
+                    plus opt-in PostgreSQL migration/concurrency/FK coverage.
   models/          Full training/inference codebase (GoogLeNet + ViT on
                     PlantVillage) — see backend/models/CLAUDE.md.
     leaf_detect.py  Torch-free leaf detection module used by the pipeline
@@ -346,21 +362,18 @@ Dockerfile          Cloud Run container: Node stage builds the Tailwind CSS,
                     and copies the built frontend. Bakes
                     MODEL_CHECKPOINT_PATH/MODEL_CONFIG_PATH as ENV (pointing
                     at the committed weights/config6) plus OMP/MKL_NUM_THREADS=2,
-                    and runs gunicorn (1 worker, 4 threads) bound to $PORT.
-                    OPENAI_API_KEY / JWT_SECRET / ADMIN_ID / ADMIN_PASSWORD
-                    are supplied at deploy time.
+                    enables disposable /tmp SQLite, and runs gunicorn (1 worker,
+                    4 threads) bound to $PORT. OPENAI_API_KEY / JWT_SECRET /
+                    ADMIN_ID / ADMIN_PASSWORD are supplied from Secret Manager;
+                    ADMIN_CONFIG_VERSION is a non-secret deployment variable.
 .dockerignore       Keeps the build context small (excludes .venv,
-                    node_modules, generated CSS, uploads, the SQLite db, .env,
+                    node_modules, generated CSS, uploads, the local SQLite db, .env,
                     and the training-only models/dataset + models/saved) — but
                     NOT the committed model weights.
 scripts/
-  deploy-cloudrun.sh  Wraps `gcloud run deploy --source .` (Cloud Build builds
-                    the Dockerfile — no local Docker). Requires
-                    OPENAI_API_KEY/JWT_SECRET/ADMIN_ID/ADMIN_PASSWORD in the
-                    shell (hard-fails otherwise); SERVICE/REGION overridable
-                    via env (default asia-northeast3). Passes the same
-                    memory/CPU/concurrency/timeout values as the console
-                    table in "Commands".
+  deploy-cloudrun.sh  Wraps `gcloud run deploy --source .`; defaults to a
+                    one-instance SQLite demo and supports opt-in Cloud SQL,
+                    mapping pinned secrets without raw values in flags.
 ```
 
 **Path convention**: `backend/app.py` resolves `frontend/` relative to its own
@@ -412,18 +425,22 @@ trusts `result.status` when present and only applies the legacy client-side
 `confidence < 70` gate to old/mock results that lack one. Don't reorder
 either gate.
 
-**Auth & usage limits**: JWT (PyJWT HS256, 7-day expiry, payload
-{uid, email, role}) in `localStorage["agrisage_token"]`, sent as
+**Auth & usage limits**: JWT (PyJWT HS256, 7-day expiry, immutable UUID `sub`
+plus `token_version`; no authoritative role/email/internal id claims) in
+`localStorage["agrisage_token"]`, sent as
 `Authorization: Bearer`. Passwords are pbkdf2:sha256 hashes in the users
-table. The admin account is whatever `ADMIN_ID`/`ADMIN_PASSWORD` say at boot
-(re-upserted every start; role='admin', daily_limit NULL). Every user gets
+table. Every protected request reloads current role/version from the DB. The
+single managed admin is whatever `ADMIN_ID`/`ADMIN_PASSWORD` say at the highest
+applied `ADMIN_CONFIG_VERSION`; a newer version rotates/promotes the target,
+demotes every previous admin, and revokes affected tokens in one transaction.
+Equal versions never write, and lower versions are ignored. Every user gets
 `daily_limit` (default **3**) diagnoses per **KST calendar day**, enforced in
 `/api/diagnose` BEFORE the upload is saved (429; count-then-insert isn't
 atomic across gunicorn threads — worst case one extra, accepted).
 Admins adjust per-user limits from `admin.html` (0 blocks, null = unlimited).
 Guests can browse `index.html` but every data page/API requires a token —
-that's the guest-diagnosis block. A token whose user row vanished (Cloud Run
-DB reset) gets 401 → authFetch clears it and returns to login.
+that's the guest-diagnosis block. Deleted users or stale token versions get
+401 → authFetch clears the token and returns to login.
 
 **Frontend/backend boundary** — current reality: **nothing is mocked
 anymore.** Auth, profile, crops, diagnosis, history, follow-up state, and
