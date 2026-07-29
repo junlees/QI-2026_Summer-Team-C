@@ -76,22 +76,25 @@ model and a structured knowledge base, grounded to prevent hallucination.
 ```
 .
 ├── backend/                # Flask server (deployment + model integration)
-│   ├── app.py              # App entry point, static serving + /api/diagnose
+│   ├── app.py              # App entry point: static serving + auth/profile/crops/diagnose/history/admin API
+│   ├── auth.py             # JWT issue/verify + password hashing + require_auth/require_admin
+│   ├── db/                 # SQLAlchemy/Alembic persistence (PostgreSQL prod, SQLite local)
 │   ├── requirements.txt
-│   └── models/             # Diagnostic model code/weights (to be integrated)
+│   └── models/             # Diagnostic model code/weights
 ├── frontend/               # Static screens (Mobile-first), styled with Tailwind CSS
 │   ├── landing.html        # Start screen ("/"), service introduction + "Log in" button
-│   ├── login.html          # Login form (submits to dashboard.html)
-│   ├── signup.html         # Signup + certification (conventional/organic) & purpose (self-consumption/sale)
+│   ├── login.html          # Real login (POST /api/login → JWT); admin logs in here too
+│   ├── signup.html         # Signup (POST /api/signup) + certification (conventional/organic) & purpose (self-consumption/sale)
 │   ├── dashboard.html      # Home after login: registered crops, diagnosis CTA, follow-up banner
 │   ├── crop-select.html    # Crop registration: 14 crops + environment/purpose/expected harvest date
 │   ├── diagnose.html       # Photo upload (includes camera tips) → redirects to diagnosis-result.html
 │   ├── diagnosis-result.html # Diagnosis result: status lights (🟢🟡🔴), cause/description, tailored recommendation, PHI banner
 │   ├── follow-up.html      # Post-treatment follow-up checklist (3 questions) → branches results
 │   ├── history.html        # Past diagnosis history list → reuses result page in history mode
-│   ├── mypage.html         # Profile edit, crop management (edit/delete), notification settings
+│   ├── mypage.html         # Profile edit, crop management (edit/delete), sign out, admin-page link (admins)
+│   ├── admin.html          # Admin dashboard: per-user info/usage + daily-limit editor
 │   ├── index.html          # (Guest only) Home: diagnosis start CTA, 4-step flow, differentiator cards
-│   ├── js/store.js         # localStorage-based mock profile/crop/history + mock AI diagnosis
+│   ├── js/store.js         # API layer: JWT helpers + fetch-backed profile/crops/history/diagnosis
 │   ├── js/pwa.js           # Service worker registration (included in all pages)
 │   ├── sw.js                # Service worker: offline caching (pre-caches all pages)
 │   ├── manifest.webmanifest # PWA manifest (app name/icons/theme color)
@@ -116,7 +119,7 @@ Start Screen → Login/Signup → Dashboard → Register Crop → Upload Photo
   → Diagnosis Result (Status Light + Explanation + Recommendation) → Follow-up Checklist → (Re-view in History)
 ```
 
-Users can try out the existing `index.html` (simple home) flow without logging in by selecting "Continue as guest" on the `landing.html` screen. After logging in/signing up, `dashboard.html` serves as the home screen, displaying registered crops and post-treatment follow-up alerts.
+Guests can browse `index.html` (simple home) via "Continue as guest" on the `landing.html` screen, but every data screen and API requires an account — diagnosis itself is login-only (the per-user daily limit needs an identity). After logging in/signing up, `dashboard.html` serves as the home screen, displaying registered crops and post-treatment follow-up alerts.
 
 Logged-in screens (Dashboard, Crop Registration, Diagnosis, Result, Follow-up, History, Profile) share a common header (Logo + Home, Diagnose, History, Profile tabs) applied across all pages for a consistent navigation experience.
 
@@ -129,9 +132,25 @@ Logged-in screens (Dashboard, Crop Registration, Diagnosis, Result, Follow-up, H
   - If the severity is "very high", the status is marked red (🔴) regardless of confidence.
 - Crops grown for "sale" will display an emphasized PHI (Pre-Harvest Interval) safety banner on the diagnosis result page.
 
-### Mock Data
+### Accounts, Auth & Daily Limits
 
-Since the backend does not yet integrate actual models or databases, `frontend/js/store.js` mocks profiles, crops, and diagnostic history using `localStorage`, and `mockDiagnose()` returns simulated diagnostic results. Once the actual API is ready, these mock functions can be replaced with `fetch()` calls (refer to `CLAUDE.md` for endpoint candidates).
+Signup/login are real: the server stores accounts with pbkdf2-hashed passwords and issues a **JWT (7-day expiry)** that `frontend/js/store.js` sends as `Authorization: Bearer`. JWTs carry an immutable UUID subject and token version; every protected request reloads the current user/role from the database. Profiles, crops, and diagnosis history all live server-side, scoped per user.
+
+Each user may run **3 diagnoses per day** by default (KST midnight reset). An
+**admin account** — credentials from `ADMIN_ID` / `ADMIN_PASSWORD`, guarded by
+the monotonic `ADMIN_CONFIG_VERSION` — sees an "Admin dashboard" button in the
+profile page (`admin.html`), listing every user's info and usage and allowing
+per-user daily-limit changes (0 blocks a user; unlimited removes the cap).
+Increment `ADMIN_CONFIG_VERSION` whenever either credential changes. This makes
+older Cloud Run revisions no-op instead of allowing them to restore an old
+password; rotating `ADMIN_ID` also demotes the previous admin and revokes its
+tokens.
+
+The demo Cloud Run image uses an explicitly enabled SQLite database under
+`/tmp`. Accounts, sessions, crops, and diagnosis history reset whenever the
+instance is replaced, restarted, or scaled to zero. Set
+`ALLOW_EPHEMERAL_SQLITE=false` and provide a PostgreSQL `DATABASE_URL` for a
+persistent deployment.
 
 ## Hybrid (Web + App)
 
@@ -168,8 +187,16 @@ pip install -r backend/requirements.txt
 ## Running the Application
 
 ```bash
+cp backend/.env.example .env
+# Replace JWT_SECRET with at least 32 random bytes before starting:
+# python -c "import secrets; print(secrets.token_hex(32))"
+# If the managed admin is enabled, set ADMIN_ID, ADMIN_PASSWORD, and
+# ADMIN_CONFIG_VERSION together.
 python backend/app.py          # http://localhost:5000
 ```
+
+When `DATABASE_URL` is omitted locally, the app uses
+`backend/db/agrisage.db`. Cloud Run never permits that fallback.
 
 Or run it with Gunicorn (production environment equivalent):
 
@@ -183,24 +210,80 @@ Production runs as a container built from the repo-root `Dockerfile`.
 
 **Continuous deployment from GitHub (recommended).** In the Cloud Run console,
 create the service with **"Continuously deploy from a repository (source or
-function)"**, connect this GitHub repo, and set **Build Type: Dockerfile**
-(source location `/Dockerfile`, repo root). Pick region `us-central1`. Under
-**Variables & Secrets**, add `OPENAI_API_KEY` (the `MODEL_CHECKPOINT_PATH` /
-`MODEL_CONFIG_PATH` paths are already baked into the image). Every push to the
+function)"**, connect this GitHub repo and the branch you deploy from, and set
+**Build Type: Dockerfile** (source location `/Dockerfile`, repo root).
+
+Then change these — the defaults will not run this service:
+
+| Console field | Value | Why |
+|---|---|---|
+| Authentication | **Allow public access** | otherwise every request is 403 |
+| Region | `asia-northeast3` (Seoul) | the form defaults to `europe-west1` |
+| Memory | **2 GiB** | the 512 MiB default OOM-kills torch on the first diagnosis |
+| CPU | 2 | matches the `OMP_NUM_THREADS=2` baked into the image |
+| Max concurrent requests | 4–8 | the default 80 just queues behind one gunicorn worker |
+| Request timeout | 300s | the first request also pays the lazy model load |
+| Maximum instances | **1** | ephemeral SQLite cannot be shared across instances |
+| Cloud SQL | **no connection** | the disposable demo does not use Cloud SQL |
+| Service account | dedicated runtime identity | needs scoped Secret Accessor access |
+| Secret Manager | `OPENAI_API_KEY`, `JWT_SECRET`, `ADMIN_ID`, `ADMIN_PASSWORD` | use pinned numeric secret versions |
+| Environment variable | `ADMIN_CONFIG_VERSION=1` | increment for every admin ID/password rotation |
+
+Memory/CPU/concurrency live under **Containers → Settings** on the create form
+and can be edited later via "Edit & deploy new revision". Every push to the
 connected branch then triggers a Cloud Build + redeploy — no local Docker or
-`gcloud` needed.
+`gcloud` needed. The build takes roughly 10 minutes (torch is ~800 MB
+installed); if it ever fails with `TIMEOUT`, raise the timeout on the trigger
+Cloud Run generated in Cloud Build.
+
+Uploaded photos and detector crops under `backend/uploads/` are deleted in a
+`finally` block after each inference attempt. The demo database lives at
+`/tmp/agrisage-demo.db`; all users and history disappear with the Cloud Run
+instance. Existing JWTs also become invalid because their user UUID no longer
+exists in the new database.
 
 **One-off deploy from the CLI (alternative).** With the `gcloud` CLI
 authenticated and a project selected:
 
 ```bash
-export OPENAI_API_KEY=sk-...            # never committed
-./scripts/deploy-cloudrun.sh           # SERVICE / REGION overridable via env
+export RUN_SERVICE_ACCOUNT=agrisage-run@PROJECT_ID.iam.gserviceaccount.com
+export OPENAI_API_KEY_SECRET_REF=agrisage-openai-api-key:1
+export JWT_SECRET_SECRET_REF=agrisage-jwt-secret:1
+export ADMIN_ID_SECRET_REF=agrisage-admin-id:1
+export ADMIN_PASSWORD_SECRET_REF=agrisage-admin-password:1
+export ADMIN_CONFIG_VERSION=1
+export EPHEMERAL_DEMO=true
+./scripts/deploy-cloudrun.sh
 ```
 
 The script uses `gcloud run deploy --source .`, so Cloud Build builds the
 Dockerfile — no local Docker needed. `MODEL_CHECKPOINT_PATH` / `MODEL_CONFIG_PATH`
 are baked into the image; Cloud Run injects `$PORT` and gunicorn binds to it.
+Demo mode enforces `MAX_INSTANCES=1`.
+
+For persistent production, set `EPHEMERAL_DEMO=false`, provide
+`CLOUD_SQL_INSTANCE` and a version-pinned `DATABASE_URL_SECRET_REF`, and grant
+the runtime identity Cloud SQL Client access. The first rollout should point at
+an empty PostgreSQL database. Alembic runs under a PostgreSQL advisory lock and
+the configured database user currently needs schema DDL plus runtime CRUD
+rights.
+
+## Tests
+
+Run the local security, migration, auth, and model-unavailable suite with:
+
+```bash
+python -m unittest discover -s backend/tests -v
+ruff format --check backend/app.py backend/auth.py backend/ai/pipeline.py backend/db backend/tests
+ruff check backend/app.py backend/auth.py backend/ai/pipeline.py backend/db backend/tests
+```
+
+PostgreSQL-only tests are skipped locally unless
+`TEST_POSTGRES_DATABASE_URL` points to a dedicated empty database whose name
+ends in `_test`. The `.github/workflows/p0-security.yml` workflow provisions
+PostgreSQL 16 and checks migrations, concurrent admin rotations, signup/admin
+conflicts, foreign key actions, and restart safety on every push and pull
+request.
 
 ## Frontend Styles (Tailwind CSS)
 
@@ -219,5 +302,11 @@ npm run watch     # Auto-rebuilds on file changes (keep running during developme
 
 ## Notes
 
-- These pages serve as a prototype/demo. Integration with actual image classification models, disease-treatment mapping DBs, or PLS data is not implemented in this mockup.
+- The demo Cloud Run image and local development use SQLite. The Cloud Run demo
+  database is disposable and therefore requires a one-instance maximum.
+- Persistent production remains available by disabling
+  `ALLOW_EPHEMERAL_SQLITE` and providing PostgreSQL `DATABASE_URL`.
+- The default PostgreSQL pool is at most three connections per Cloud Run
+  instance (30 at the deployment script's ten-instance cap); verify that
+  budget against the selected Cloud SQL tier.
 - For PRD and technical requirements, please refer to the team documentation.

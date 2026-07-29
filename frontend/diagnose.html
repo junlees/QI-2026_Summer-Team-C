@@ -102,6 +102,7 @@
 
 <script src="js/store.js"></script>
 <script>
+  requireAuth();
   const params = new URLSearchParams(window.location.search);
   const cropId = params.get("cropId");
   const crop = params.get("crop") || "Crop";
@@ -229,11 +230,14 @@
     diagnoseBtn.disabled = true;
     diagnoseError.classList.add("hidden");
     try {
-      const registeredCrop = getCrops().find((c) => c.id === cropId) || null;
+      // Server ids are numbers; cropId comes from the URL as a string.
+      const registeredCrop = (await getCrops()).find((c) => String(c.id) === String(cropId)) || null;
+      if (!registeredCrop) {
+        throw new Error("This crop is no longer registered. Please pick one from the dashboard.");
+      }
       const result = await diagnoseWithApi({
         imageBlob: uploadedBlob,
-        crop: registeredCrop,
-        profile: getProfile(),
+        cropId: registeredCrop.id,
         userInput: (userNotes.value || "").trim(),
       });
       const payload = {

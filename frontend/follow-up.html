@@ -91,30 +91,39 @@
 
 <script src="js/store.js"></script>
 <script>
+  requireAuth();
   const params = new URLSearchParams(window.location.search);
   const historyId = params.get("id");
-  const entry = historyId ? findHistoryEntry(historyId) : null;
 
-  const chip = document.getElementById("cropChip");
-  if (entry) {
-    chip.style.background = entry.color;
-    chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${escapeHtml(entry.emoji)}</span> ${escapeHtml(entry.cropName)} · ${escapeHtml(entry.disease)}`;
-  } else {
-    chip.style.background = "#3f7d20";
-    chip.textContent = "Follow-up check";
-  }
+  (async () => {
+    const entry = historyId ? await findHistoryEntry(historyId) : null;
 
-  document.getElementById("checklistForm").addEventListener("submit", (e) => {
+    const chip = document.getElementById("cropChip");
+    if (entry) {
+      chip.style.background = entry.color;
+      chip.innerHTML = `<span class="w-[1.8rem] h-[1.8rem] rounded-full bg-white/30 flex items-center justify-center text-base">${escapeHtml(entry.emoji)}</span> ${escapeHtml(entry.cropName)} · ${escapeHtml(entry.disease)}`;
+    } else {
+      chip.style.background = "#3f7d20";
+      chip.textContent = "Follow-up check";
+    }
+  })();
+
+  document.getElementById("checklistForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
     const allChecked = ["check1", "check2", "check3"].every((name) => form.elements[name].checked);
+    submitBtn.disabled = true;
 
-    document.getElementById("resultGood").classList.toggle("hidden", !allChecked);
-    document.getElementById("resultEscalate").classList.toggle("hidden", allChecked);
-    form.querySelector('button[type="submit"]').disabled = true;
-
-    if (historyId) {
-      updateHistoryEntry(historyId, { followUpStatus: allChecked ? "resolved" : "escalate" });
+    try {
+      if (historyId) {
+        await updateFollowUp(historyId, allChecked ? "resolved" : "escalate");
+      }
+      document.getElementById("resultGood").classList.toggle("hidden", !allChecked);
+      document.getElementById("resultEscalate").classList.toggle("hidden", allChecked);
+    } catch (err) {
+      alert(err.message);
+      submitBtn.disabled = false;
     }
   });
 </script>

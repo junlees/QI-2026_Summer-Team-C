@@ -56,8 +56,10 @@
 
 <script src="js/store.js"></script>
 <script>
+  requireAuth();
+  (async () => {
   const list = document.getElementById("historyList");
-  const history = getHistory();
+  const history = await getHistory();
 
   if (!history.length) {
     document.getElementById("emptyState").classList.remove("hidden");
@@ -83,7 +85,9 @@
 
   list.querySelectorAll(".history-item").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const entry = findHistoryEntry(btn.dataset.id);
+      // Find in the already-fetched list (server ids are numbers, data-id is
+      // a string) — no extra request needed.
+      const entry = history.find((h) => String(h.id) === btn.dataset.id);
       if (!entry) return;
       sessionStorage.setItem("agrisage_pending_diagnosis", JSON.stringify({
         viewOnly: true,
@@ -107,6 +111,7 @@
       window.location.href = "diagnosis-result.html";
     });
   });
+  })();
 </script>
 
 <script src="js/pwa.js"></script>

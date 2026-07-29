@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Admin — AgriSage</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#3f7d20">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AgriSage">
+</head>
+<body class="m-0 p-0 bg-page text-ink font-sans">
+
+<div class="w-full max-w-[430px] md:max-w-3xl lg:max-w-5xl mx-auto min-h-screen bg-app flex flex-col relative shadow-sm md:shadow-2xl md:rounded-[32px] md:my-6 md:border md:border-border/60 transition-all">
+  <header class="sticky top-0 z-20 bg-app/95 backdrop-blur-md border-b border-border md:rounded-t-[32px]">
+    <div class="flex items-center justify-between px-4 md:px-8 pt-4 pb-2">
+      <div class="flex items-center gap-2.5 font-extrabold text-[1.2rem] tracking-tight">
+        <div class="w-9 h-9 rounded-xl bg-accent flex items-center justify-center text-[1.1rem] text-white shadow-xs">🌿</div>
+        <span>Agri<span class="text-accent">Sage</span></span>
+      </div>
+      <!-- Desktop Navigation Link Badges -->
+      <div class="hidden md:flex items-center gap-1.5 bg-card border border-border/80 rounded-2xl p-1 shadow-xs">
+        <a href="dashboard.html" class="px-3.5 py-1.5 rounded-xl text-[0.82rem] font-bold text-muted hover:text-ink hover:bg-app transition-all">🏠 Home</a>
+        <a href="crop-select.html" class="px-3.5 py-1.5 rounded-xl text-[0.82rem] font-bold text-muted hover:text-ink hover:bg-app transition-all">📷 Diagnose</a>
+        <a href="history.html" class="px-3.5 py-1.5 rounded-xl text-[0.82rem] font-bold text-muted hover:text-ink hover:bg-app transition-all">📋 History</a>
+        <a href="mypage.html" class="px-3.5 py-1.5 rounded-xl text-[0.82rem] font-extrabold text-accent-dark bg-accent-soft transition-all">👤 Profile</a>
+      </div>
+    </div>
+    <!-- Mobile Navigation Tabs -->
+    <nav class="flex md:hidden px-[0.6rem] pb-[0.4rem]">
+      <a href="dashboard.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">🏠</span>Home</a>
+      <a href="crop-select.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">📷</span>Diagnose</a>
+      <a href="history.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-muted py-[0.3rem]"><span class="text-[1.15rem]">📋</span>History</a>
+      <a href="mypage.html" class="flex-1 flex flex-col items-center gap-[0.15rem] text-[0.68rem] text-accent-dark font-bold py-[0.3rem]"><span class="text-[1.15rem]">👤</span>Profile</a>
+    </nav>
+    <div class="flex items-center gap-3 px-4 md:px-8 pb-3 pt-1">
+      <a class="back-btn hover:border-accent transition-colors" href="mypage.html">←</a>
+      <div>
+        <h1 class="m-0 text-[1.15rem] md:text-xl font-extrabold tracking-tight">Admin Dashboard</h1>
+        <p class="m-0 text-[0.78rem] text-muted font-medium hidden md:block">Per-user info, usage, and daily diagnosis limits</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 px-4 md:px-8 pt-4 pb-12">
+    <p class="m-0 mb-4 text-muted text-[0.88rem] leading-relaxed">
+      Each user gets <b class="text-ink">3 diagnoses per day</b> by default. Adjust a user's limit below (0 blocks them, Unlimited removes the cap).
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5" id="userList"></div>
+    <p class="hidden m-0 text-muted text-[0.85rem] font-medium" id="emptyState">No users yet.</p>
+    <p class="hidden m-0 text-[0.85rem] font-bold text-danger" id="loadError"></p>
+  </main>
+</div>
+
+<script src="js/store.js"></script>
+<script>
+  requireAuth();
+  const userList = document.getElementById("userList");
+  const loadError = document.getElementById("loadError");
+
+  const fmtDate = (utc) => (utc ? `${utc.slice(0, 10)}` : "Never");
+  const fmtLimit = (limit) => (limit === null || limit === undefined ? "∞" : limit);
+
+  function userCard(u) {
+    const roleBadge = u.role === "admin"
+      ? `<span class="text-[0.66rem] font-extrabold text-accent-dark bg-accent-soft rounded-lg px-2 py-[0.15rem]">ADMIN</span>`
+      : "";
+    return `
+      <div class="bg-card border border-border rounded-2xl px-4 py-[0.85rem] flex flex-col gap-[0.55rem]">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="flex-1 min-w-0 text-[0.9rem] font-bold truncate">${escapeHtml(u.email)}</div>
+          ${roleBadge}
+        </div>
+        <div class="text-[0.72rem] text-muted">
+          Joined ${escapeHtml(fmtDate(u.created_at))} · ${u.certification === "organic" ? "Organic" : "Conventional"} · ${u.purpose === "sale" ? "Sale" : "Self-consumption"}
+        </div>
+        <div class="text-[0.78rem] font-bold">
+          Today <span class="text-accent-dark">${u.used_today} / ${fmtLimit(u.daily_limit)}</span>
+          <span class="text-muted font-medium"> · Total ${u.total_count} · Last: ${escapeHtml(fmtDate(u.last_diagnosis_at))}</span>
+        </div>
+        <div class="flex items-center gap-2 pt-[0.35rem] border-t border-border">
+          <span class="text-[0.72rem] font-bold text-muted shrink-0">Daily limit</span>
+          <input type="number" min="0" max="999" inputmode="numeric" id="limit-${u.id}"
+            value="${u.daily_limit === null || u.daily_limit === undefined ? "" : u.daily_limit}" placeholder="∞"
+            class="w-16 border border-border rounded-xl px-2 py-[0.35rem] text-[0.8rem] bg-card text-ink outline-none focus:border-accent">
+          <button type="button" class="save-limit-btn border-none rounded-xl px-3 py-[0.4rem] text-[0.74rem] font-bold bg-accent text-white cursor-pointer" data-id="${u.id}">Save</button>
+          <button type="button" class="unlimited-btn border border-border rounded-xl px-2.5 py-[0.35rem] text-[0.74rem] font-bold bg-card text-muted cursor-pointer hover:text-ink" data-id="${u.id}">Unlimited</button>
+          <span class="hidden text-[0.72rem] font-extrabold text-accent-dark saved-note" id="saved-${u.id}">Saved ✓</span>
+        </div>
+      </div>
+    `;
+  }
+
+  async function render() {
+    let users;
+    try {
+      users = await adminListUsers();
+    } catch (err) {
+      loadError.textContent = err.message;
+      loadError.classList.remove("hidden");
+      return;
+    }
+    document.getElementById("emptyState").classList.toggle("hidden", users.length > 0);
+    userList.innerHTML = users.map(userCard).join("");
+
+    async function saveLimit(id, value) {
+      try {
+        await adminSetLimit(id, value);
+        await render();
+        const note = document.getElementById(`saved-${id}`);
+        if (note) {
+          note.classList.remove("hidden");
+          setTimeout(() => note.classList.add("hidden"), 1800);
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    userList.querySelectorAll(".save-limit-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const raw = document.getElementById(`limit-${btn.dataset.id}`).value.trim();
+        // Empty input = unlimited (same as the Unlimited button).
+        const value = raw === "" ? null : Number(raw);
+        if (value !== null && (!Number.isInteger(value) || value < 0 || value > 999)) {
+          alert("Daily limit must be a whole number between 0 and 999.");
+          return;
+        }
+        saveLimit(btn.dataset.id, value);
+      });
+    });
+    userList.querySelectorAll(".unlimited-btn").forEach((btn) => {
+      btn.addEventListener("click", () => saveLimit(btn.dataset.id, null));
+    });
+  }
+
+  (async () => {
+    // Admin-only page: the API would 403 anyway, but bounce non-admins early.
+    const profile = await getProfile();
+    if (profile.role !== "admin") {
+      window.location.href = "dashboard.html";
+      return;
+    }
+    await render();
+  })();
+</script>
+
+<script src="js/pwa.js"></script>
+</body>
+</html>

@@ -34,7 +34,7 @@
         </label>
         <label class="flex flex-col gap-[0.35rem]">
           <span class="text-[0.78rem] font-bold text-muted">Password</span>
-          <input type="password" required placeholder="••••••••"
+          <input type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"
             class="w-full border border-border rounded-2xl px-4 py-[0.85rem] text-[0.92rem] bg-card text-ink outline-none focus:border-accent">
         </label>
       </div>
@@ -68,7 +68,9 @@
         <p class="m-0 mt-[0.5rem] text-[0.74rem] text-muted leading-relaxed">You'll set growing environment (open field / greenhouse) separately for each crop you register.</p>
       </div>
 
-      <button type="submit" class="w-full border-none rounded-2xl py-[0.95rem] text-[0.95rem] font-bold bg-accent text-white cursor-pointer">
+      <p id="signupError" class="hidden m-0 text-[0.8rem] font-bold text-danger bg-danger-soft border border-[#f0c6c2] rounded-xl px-3 py-[0.6rem]"></p>
+
+      <button id="signupBtn" type="submit" class="w-full border-none rounded-2xl py-[0.95rem] text-[0.95rem] font-bold bg-accent text-white cursor-pointer disabled:opacity-60">
         Create account
       </button>
     </form>
@@ -82,14 +84,25 @@
 
 <script src="js/store.js"></script>
 <script>
-  document.getElementById("signupForm").addEventListener("submit", (e) => {
+  const errorEl = document.getElementById("signupError");
+  const signupBtn = document.getElementById("signupBtn");
+  document.getElementById("signupForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
-    const email = form.querySelector('input[type="email"]').value;
+    const email = form.querySelector('input[type="email"]').value.trim();
+    const password = form.querySelector('input[type="password"]').value;
     const certification = form.querySelector('input[name="certification"]:checked').value;
     const purpose = form.querySelector('input[name="purpose"]:checked').value;
-    saveProfile({ email, certification, purpose });
-    window.location.href = "dashboard.html";
+    errorEl.classList.add("hidden");
+    signupBtn.disabled = true;
+    try {
+      await apiSignup({ email, password, certification, purpose });
+      window.location.href = "dashboard.html";
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.classList.remove("hidden");
+      signupBtn.disabled = false;
+    }
   });
 </script>
 

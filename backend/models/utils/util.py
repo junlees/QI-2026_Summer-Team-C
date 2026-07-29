@@ -1,6 +1,5 @@
 import json
 import torch
-import pandas as pd
 from pathlib import Path
 from itertools import repeat
 from collections import OrderedDict
@@ -45,6 +44,12 @@ def prepare_device(n_gpu_use):
 
 class MetricTracker:
     def __init__(self, *keys, writer=None):
+        # pandas는 학습 전용 의존성이라 여기서만 지연 import한다. 추론 경로
+        # (backend/ai/pipeline.py → predict → model.model → base → logger → utils)가
+        # 이 모듈을 import하는데, 배포 컨테이너(backend/requirements.txt)에는
+        # pandas가 없어 모듈 최상단 import면 진단 API가 통째로 실패한다.
+        import pandas as pd
+
         self.writer = writer
         self._data = pd.DataFrame(index=keys, columns=['total', 'counts', 'average'])
         self.reset()

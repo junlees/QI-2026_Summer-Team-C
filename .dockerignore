@@ -10,6 +10,15 @@
 .venv
 **/__pycache__
 **/*.py[cod]
+.mypy_cache
+.ruff_cache
+
+# Training-only assets — inference reads the checkpoint in weights/ and the
+# class names in weights/classes.json, never these. They are gitignored (so
+# Cloud Build's clone never sees them) but huge on a dev machine, where
+# `gcloud run deploy --source .` would otherwise upload the whole dataset.
+backend/models/dataset/
+backend/models/saved/
 
 # Node / Tailwind (rebuilt in the Node stage)
 **/node_modules
