@@ -1,4 +1,4 @@
-name: P0 security and PostgreSQL
+name: P0 security
 
 on:
   pull_request:
@@ -11,24 +11,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: agrisage_test
-          POSTGRES_USER: agrisage
-          POSTGRES_PASSWORD: integration-password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U agrisage -d agrisage_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
 
     env:
       JWT_SECRET: ci-only-jwt-secret-with-at-least-32-random-bytes
-      TEST_POSTGRES_DATABASE_URL: postgresql://agrisage:integration-password@127.0.0.1:5432/agrisage_test
+      # TEST_POSTGRES_DATABASE_URL is deliberately unset while the deployment
+      # runs on disposable SQLite: backend/tests/test_postgres_p0.py skips
+      # itself without it. Restore the postgres:16 service container and this
+      # variable when switching back to persistent PostgreSQL.
 
     steps:
       - uses: actions/checkout@v4
@@ -46,11 +35,10 @@ jobs:
             PyJWT==2.13.0 \
             SQLAlchemy==2.0.51 \
             alembic==1.18.5 \
-            "psycopg[binary]==3.3.4" \
             openai \
             python-dotenv==1.0.1 \
             numpy \
-            ruff
+            ruff==0.12.0
       - name: Static checks
         run: |
           ruff format --check \
@@ -66,12 +54,13 @@ jobs:
             backend/db \
             backend/tests
           bash -n scripts/deploy-cloudrun.sh scripts/demo.sh scripts/setup.sh
-      - name: Unit and PostgreSQL integration tests
+      - name: Unit tests
         run: python -m unittest discover -s backend/tests -v
       - name: Production server import check
         env:
-          DATABASE_URL: ${{ env.TEST_POSTGRES_DATABASE_URL }}
+          # Mirror the deployed demo revision: Cloud Run + disposable SQLite.
           K_SERVICE: agrisage-ci
+          ALLOW_EPHEMERAL_SQLITE: "true"
         run: >-
           gunicorn
           --check-config
