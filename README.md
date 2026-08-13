@@ -218,7 +218,6 @@ Then change these — the defaults will not run this service:
 | Console field | Value | Why |
 |---|---|---|
 | Authentication | **Allow public access** | otherwise every request is 403 |
-| Region | `asia-northeast3` (Seoul) | the form defaults to `europe-west1` |
 | Memory | **2 GiB** | the 512 MiB default OOM-kills torch on the first diagnosis |
 | CPU | 2 | matches the `OMP_NUM_THREADS=2` baked into the image |
 | Max concurrent requests | 4–8 | the default 80 just queues behind one gunicorn worker |
