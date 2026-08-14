@@ -262,3 +262,7 @@ backend/db/*.sqlite3-*
 # Claude Code local state + git worktrees — never version-controlled
 .claude/
 .claude/**
+
+# Agent MD
+CLAUDE.md
+AGENTS.md
