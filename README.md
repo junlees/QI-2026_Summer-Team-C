@@ -1,6 +1,13 @@
 # AgriSage
 
-> Agriculture + Sage. "We don't just name the problem. We walk you through it."
+> Agriculture + Sage.
+>
+> Plant Identification & Health Diagnosis
+
+## Executive summary
+
+Agrisage is an AI service platform designed for home gardeners as well as beginner businesses entering the plant cultivation industry. Users simply upload a photo of a plant leaf, and the platform identifies the plant species while also diagnosing its health condition and potential diseases. Beyond image classification, the platform utilizes a large language model (LLM) to provide detailed explanations of detected diseases and recommend appropriate treatments and care methods. This enables users to better understand and manage their plants with confidence. As a result, Agrisage makes plant cultivations more accessible, efficient, and successful for both individuals and small businesses. 
+
 
 ## Team Introduction
 
@@ -13,6 +20,7 @@
 | Minseong Hong | Dataset |
 | Najin Son | Dataset |
 | Sehyeon Kim | Frontend · LLM |
+
 
 ## Service Introduction
 
